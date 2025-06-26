@@ -26,6 +26,10 @@ class RegistrationController {
         return $this->registrationModel->getRegisteredLeads($user_id, $course_name);
     }
 
+    public function getDeclinedLeads($user_id = null, $course_name = null) {
+        return $this->registrationModel->getDeclinedLeads($user_id, $course_name);
+    }
+
     public function approveRegistration($lead_id, $role) {
         if ($role !== 'marketing_manager' && $role !== 'academic_user') {
             error_log("Invalid role for approval: $role");
@@ -47,7 +51,6 @@ class RegistrationController {
         }
         $field = $role === 'marketing_manager' ? 'marketing_manager_approval' : 'academic_user_approval';
         $other_field = $role === 'marketing_manager' ? 'academic_user_approval' : 'marketing_manager_approval';
-        // Set both approvals to declined
         $result1 = $this->registrationModel->updateApproval($lead_id, $field, 'declined');
         $result2 = $this->registrationModel->updateApproval($lead_id, $other_field, 'declined');
         if ($result1 && $result2) {
@@ -56,6 +59,18 @@ class RegistrationController {
             return true;
         }
         error_log("Failed to decline registration for lead_id: $lead_id, role: $role");
+        return false;
+    }
+
+    public function resendToRegistration($lead_id) {
+        $result1 = $this->registrationModel->updateApproval($lead_id, 'marketing_manager_approval', 'pending');
+        $result2 = $this->registrationModel->updateApproval($lead_id, 'academic_user_approval', 'pending');
+        $result3 = $this->registrationModel->updateStatus($lead_id, 'pending');
+        $result4 = $this->leadModel->updateStatus($lead_id, 'pending_registration');
+        if ($result1 && $result2 && $result3 && $result4) {
+            return true;
+        }
+        error_log("Failed to resend registration for lead_id: $lead_id");
         return false;
     }
 
@@ -74,7 +89,7 @@ class RegistrationController {
             $this->leadModel->updateStatus($lead_id, 'declined');
             return true;
         }
-        return true; // No status change needed if approvals are still pending
+        return true;
     }
 
     public function getRegistrationByLeadId($lead_id) {
