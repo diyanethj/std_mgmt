@@ -28,6 +28,7 @@ if (!$user) {
                 <a href="/std_mgmt/views/admin/upload_leads.php">Upload Leads</a>
                 <a href="/std_mgmt/views/admin/leads_list.php">Leads List</a>
                 <a href="/std_mgmt/views/admin/assigned_leads.php">Assigned Leads</a>
+                <a href="/std_mgmt/views/admin/pending_registrations.php">Pending Registrations</a>
                 <a href="/std_mgmt/views/admin/registered_leads.php">Registered Leads</a>
             <?php elseif ($user['role'] === 'marketing_user'): ?>
                 <a href="/std_mgmt/views/marketing_user/dashboard.php">Dashboard</a>
