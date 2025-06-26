@@ -22,6 +22,10 @@ class RegistrationController {
         return $this->registrationModel->getPendingRegistrations($user_id, $course_name);
     }
 
+    public function getRegisteredLeads($user_id = null, $course_name = null) {
+        return $this->registrationModel->getRegisteredLeads($user_id, $course_name);
+    }
+
     public function approveRegistration($lead_id, $role) {
         if ($role === 'marketing_manager' || $role === 'academic_user') {
             $field = $role === 'marketing_manager' ? 'marketing_manager_approval' : 'academic_user_approval';
