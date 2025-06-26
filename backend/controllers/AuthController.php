@@ -1,16 +1,15 @@
 <?php
-require_once __DIR__ . '/../config/db_connect.php';
-require_once __DIR__ . '/../models/User.php';
-
 class AuthController {
-    private $userModel;
+    private $pdo;
 
     public function __construct($pdo) {
-        $this->userModel = new User($pdo);
+        $this->pdo = $pdo;
     }
 
     public function login($username, $password) {
-        $user = $this->userModel->getUserByUsername($username);
+        $stmt = $this->pdo->prepare("SELECT * FROM users WHERE username = ?");
+        $stmt->execute([$username]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
         if ($user && password_verify($password, $user['password'])) {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['role'] = $user['role'];
@@ -19,16 +18,24 @@ class AuthController {
         return false;
     }
 
+    public function getCurrentUser() {
+        if (isset($_SESSION['user_id'])) {
+            $stmt = $this->pdo->prepare("SELECT * FROM users WHERE id = ?");
+            $stmt->execute([$_SESSION['user_id']]);
+            return $stmt->fetch(PDO::FETCH_ASSOC);
+        }
+        return null;
+    }
+
+    public function getUsersByRole($role) {
+        $stmt = $this->pdo->prepare("SELECT id, username FROM users WHERE role = ?");
+        $stmt->execute([$role]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     public function logout() {
         session_destroy();
         header('Location: /std_mgmt/views/auth/login.php');
         exit;
-    }
-
-    public function getCurrentUser() {
-        if (isset($_SESSION['user_id'])) {
-            return $this->userModel->getUserById($_SESSION['user_id']);
-        }
-        return null;
     }
 }
