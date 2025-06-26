@@ -150,7 +150,7 @@
           if ($method === 'POST') {
               $user = $authController->getCurrentUser();
               if ($user && in_array($user['role'], ['marketing_manager', 'academic_user'])) {
-                  $registrationController->approveRegistration($_POST['lead_id'], $_POST['role'], $_POST['status']);
+                  $registrationController->approveRegistration($_POST['lead_id'], $user['role'], $_POST['status']);
                   header('Location: /std_mgmt/views/' . $user['role'] . '/pending_registrations.php?success=Registration updated');
                   exit;
               } else {

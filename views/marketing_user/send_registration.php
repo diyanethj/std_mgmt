@@ -20,10 +20,12 @@
   }
 
   if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-      $leadController->sendToRegistration($lead_id);
-      $registrationController->createRegistration($lead_id);
-      header('Location: /std_mgmt/views/marketing_user/assigned_leads.php?course=' . urlencode($lead['form_name']) . '&success=Lead sent to registration');
-      exit;
+      if ($leadController->sendToRegistration($lead_id) && $registrationController->createRegistration($lead_id)) {
+          header('Location: /std_mgmt/views/marketing_user/assigned_leads.php?course=' . urlencode($lead['form_name']) . '&success=Lead sent to registration');
+          exit;
+      } else {
+          echo '<p style="color: red;">Error: Failed to send lead to registration.</p>';
+      }
   }
   ?>
   <h2>Send Lead to Registration</h2>

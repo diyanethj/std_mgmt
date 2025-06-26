@@ -28,21 +28,20 @@ if (!$user) {
                 <a href="/std_mgmt/views/admin/upload_leads.php">Upload Leads</a>
                 <a href="/std_mgmt/views/admin/leads_list.php">Leads List</a>
                 <a href="/std_mgmt/views/admin/assigned_leads.php">Assigned Leads</a>
+                <a href="/std_mgmt/views/admin/registered_leads.php">Registered Leads</a>
             <?php elseif ($user['role'] === 'marketing_user'): ?>
                 <a href="/std_mgmt/views/marketing_user/dashboard.php">Dashboard</a>
                 <a href="/std_mgmt/views/marketing_user/assigned_leads.php">Assigned Leads</a>
                 <a href="/std_mgmt/views/marketing_user/pending_registrations.php">Pending Registrations</a>
+                <a href="/std_mgmt/views/marketing_user/registered_leads.php">Registered Leads</a>
             <?php elseif ($user['role'] === 'marketing_manager'): ?>
                 <a href="/std_mgmt/views/marketing_manager/dashboard.php">Dashboard</a>
                 <a href="/std_mgmt/views/marketing_manager/pending_registrations.php">Pending Registrations</a>
                 <a href="/std_mgmt/views/marketing_manager/registered_leads.php">Registered Leads</a>
             <?php elseif ($user['role'] === 'academic_user'): ?>
-                <a href="/std_mgmt/views/academic/dashboard.php">Dashboard</a>
-                <a href="/std_mgmt/views/academic/pending_registrations.php">Pending Registrations</a>
-                <a href="/std_mgmt/views/academic/registered_leads.php">Registered Leads</a>
-            <?php elseif ($user['role'] === 'finance_user'): ?>
-                <a href="/std_mgmt/views/finance/dashboard.php">Dashboard</a>
-                <a href="/std_mgmt/views/finance/registered_leads.php">Registered Leads</a>
+                <a href="/std_mgmt/views/academic_user/dashboard.php">Dashboard</a>
+                <a href="/std_mgmt/views/academic_user/pending_registrations.php">Pending Registrations</a>
+                <a href="/std_mgmt/views/academic_user/registered_leads.php">Registered Leads</a>
             <?php endif; ?>
             <a href="/std_mgmt/views/auth/logout.php">Logout</a>
         </nav>
