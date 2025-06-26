@@ -64,8 +64,8 @@ class LeadController {
         return $this->leadModel->getLeadsByCourse($course_name, $user_id, $registration_status);
     }
 
-    public function getAssignedLeads($user_id = null, $registration_status = null) {
-        return $this->leadModel->getAssignedLeads($user_id, $registration_status);
+    public function getAssignedLeads($user_id = null, $course_name = null) {
+        return $this->leadModel->getAssignedLeads($user_id, $course_name);
     }
 
     public function getDistinctCourses() {

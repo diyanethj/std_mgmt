@@ -10,7 +10,7 @@ class Lead {
         if (empty($form_name) || empty($full_name) || empty($email) || empty($phone)) {
             return false;
         }
-        $stmt = $this->pdo->prepare("INSERT INTO leads (form_name, full_name, email, phone) VALUES (?, ?, ?, ?)");
+        $stmt = $this->pdo->prepare("INSERT INTO leads (form_name, full_name, email, phone, status) VALUES (?, ?, ?, ?, 'new')");
         return $stmt->execute([$form_name, $full_name, $email, $phone]);
     }
 
@@ -57,32 +57,32 @@ class Lead {
         return $results;
     }
 
-    public function getAssignedLeads($user_id = null, $registration_status = null) {
+    public function getAssignedLeads($user_id = null, $course_name = null) {
         $query = "SELECT l.*, u.username, r.status AS registration_status
                   FROM leads l
                   LEFT JOIN users u ON l.assigned_user_id = u.id
                   LEFT JOIN registrations r ON l.id = r.lead_id
-                  WHERE l.assigned_user_id IS NOT NULL";
+                  WHERE l.assigned_user_id IS NOT NULL
+                  AND l.status IN ('new', 'assigned')
+                  AND r.status IS NULL";
         $params = [];
         if ($user_id !== null) {
             $query .= " AND l.assigned_user_id = ?";
             $params[] = $user_id;
         }
-        if ($registration_status !== null) {
-            if ($registration_status === 'N/A') {
-                $query .= " AND r.status IS NULL";
-            } else {
-                $query .= " AND r.status = ?";
-                $params[] = $registration_status;
-            }
+        if ($course_name !== null) {
+            $query .= " AND l.form_name = ?";
+            $params[] = $course_name;
         }
         $stmt = $this->pdo->prepare($query);
         $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        error_log("getAssignedLeads($user_id, $course_name) returned: " . print_r($results, true));
+        return $results;
     }
 
     public function getDistinctCourses() {
-        $stmt = $this->pdo->prepare("SELECT DISTINCT form_name FROM leads WHERE assigned_user_id IS NOT NULL");
+        $stmt = $this->pdo->prepare("SELECT DISTINCT form_name FROM leads WHERE assigned_user_id IS NOT NULL AND status IN ('new', 'assigned')");
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_COLUMN);
     }
