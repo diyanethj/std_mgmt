@@ -60,12 +60,12 @@ class LeadController {
         return $this->leadModel->assignLead($lead_id, $user_id);
     }
 
-    public function getLeadsByCourse($course_name, $user_id = null) {
-        return $this->leadModel->getLeadsByCourse($course_name, $user_id);
+    public function getLeadsByCourse($course_name, $user_id = null, $registration_status = null) {
+        return $this->leadModel->getLeadsByCourse($course_name, $user_id, $registration_status);
     }
 
-    public function getAssignedLeads($user_id = null) {
-        return $this->leadModel->getAssignedLeads($user_id);
+    public function getAssignedLeads($user_id = null, $registration_status = null) {
+        return $this->leadModel->getAssignedLeads($user_id, $registration_status);
     }
 
     public function getDistinctCourses() {

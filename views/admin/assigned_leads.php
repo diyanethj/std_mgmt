@@ -1,13 +1,18 @@
 <?php
 include __DIR__ . '/../layouts/header.php';
 require_once __DIR__ . '/../../backend/controllers/LeadController.php';
+require_once __DIR__ . '/../../backend/controllers/AuthController.php';
 $leadController = new LeadController($pdo);
+$authController = new AuthController($pdo);
 
-$course_list = $leadController->getDistinctCourses();
 $course = $_GET['course'] ?? '';
+$user_id = $_GET['user_id'] ?? '';
+$registration_status = $_GET['registration_status'] ?? '';
+$course_list = $leadController->getDistinctCourses();
+$marketing_users = $authController->getUsersByRole('marketing_user');
 
 if ($course) {
-    $leads = $leadController->getLeadsByCourse($course);
+    $leads = $leadController->getLeadsByCourse($course, $user_id ?: null, $registration_status ?: null);
 } else {
     $leads = [];
 }
@@ -16,9 +21,40 @@ if ($course) {
 <?php if (isset($_GET['success'])): ?>
     <p style="color: green;"><?php echo htmlspecialchars($_GET['success']); ?></p>
 <?php endif; ?>
+
+<!-- Filters -->
+<form method="GET" action="/std_mgmt/views/admin/assigned_leads.php">
+    <div class="form-group">
+        <label for="user_id">Filter by Marketing User</label>
+        <select name="user_id" id="user_id">
+            <option value="">All</option>
+            <?php foreach ($marketing_users as $user): ?>
+                <option value="<?php echo htmlspecialchars((string)$user['id']); ?>" <?php echo $user_id == $user['id'] ? 'selected' : ''; ?>>
+                    <?php echo htmlspecialchars($user['username']); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+    <div class="form-group">
+        <label for="registration_status">Filter by Registration Status</label>
+        <select name="registration_status" id="registration_status">
+            <option value="">All</option>
+            <option value="pending" <?php echo $registration_status === 'pending' ? 'selected' : ''; ?>>Pending</option>
+            <option value="completed" <?php echo $registration_status === 'completed' ? 'selected' : ''; ?>>Completed</option>
+            <option value="declined" <?php echo $registration_status === 'declined' ? 'selected' : ''; ?>>Declined</option>
+            <option value="N/A" <?php echo $registration_status === 'N/A' ? 'selected' : ''; ?>>N/A</option>
+        </select>
+    </div>
+    <?php if ($course): ?>
+        <input type="hidden" name="course" value="<?php echo htmlspecialchars($course); ?>">
+    <?php endif; ?>
+    <button type="submit" class="btn btn-primary">Apply Filters</button>
+</form>
+
 <?php if (empty($course_list)): ?>
     <p>No assigned leads found.</p>
 <?php else: ?>
+    <h3>Courses</h3>
     <table class="table" id="dataTable">
         <tr>
             <th>Course Name</th>
@@ -28,8 +64,8 @@ if ($course) {
         <?php foreach ($course_list as $course_name): ?>
         <tr>
             <td><?php echo htmlspecialchars($course_name); ?></td>
-            <td><?php echo count(array_filter($leadController->getLeadsByCourse($course_name), fn($lead) => $lead['assigned_user_id'] !== null)); ?></td>
-            <td><a href="?course=<?php echo urlencode($course_name); ?>" class="btn btn-primary">View Leads</a></td>
+            <td><?php echo count(array_filter($leadController->getLeadsByCourse($course_name, $user_id ?: null, $registration_status ?: null), fn($lead) => $lead['assigned_user_id'] !== null)); ?></td>
+            <td><a href="?course=<?php echo urlencode($course_name); ?>&user_id=<?php echo urlencode($user_id); ?>&registration_status=<?php echo urlencode($registration_status); ?>" class="btn btn-primary">View Leads</a></td>
         </tr>
         <?php endforeach; ?>
     </table>

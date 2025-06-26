@@ -19,7 +19,7 @@ class Lead {
         return $stmt->execute([$user_id, $lead_id]);
     }
 
-    public function getLeadsByCourse($course_name, $user_id = null) {
+    public function getLeadsByCourse($course_name, $user_id = null, $registration_status = null) {
         if ($course_name) {
             $query = "SELECT l.*, u.username, r.status AS registration_status
                       FROM leads l
@@ -30,6 +30,14 @@ class Lead {
             if ($user_id !== null) {
                 $query .= " AND l.assigned_user_id = ?";
                 $params[] = $user_id;
+            }
+            if ($registration_status !== null) {
+                if ($registration_status === 'N/A') {
+                    $query .= " AND r.status IS NULL";
+                } else {
+                    $query .= " AND r.status = ?";
+                    $params[] = $registration_status;
+                }
             }
             $stmt = $this->pdo->prepare($query);
             $stmt->execute($params);
@@ -45,24 +53,31 @@ class Lead {
             }
         }
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        error_log("getLeadsByCourse($course_name, $user_id) returned: " . print_r($results, true));
+        error_log("getLeadsByCourse($course_name, $user_id, $registration_status) returned: " . print_r($results, true));
         return $results;
     }
 
-    public function getAssignedLeads($user_id = null) {
+    public function getAssignedLeads($user_id = null, $registration_status = null) {
         $query = "SELECT l.*, u.username, r.status AS registration_status
                   FROM leads l
                   LEFT JOIN users u ON l.assigned_user_id = u.id
                   LEFT JOIN registrations r ON l.id = r.lead_id
                   WHERE l.assigned_user_id IS NOT NULL";
+        $params = [];
         if ($user_id !== null) {
             $query .= " AND l.assigned_user_id = ?";
-            $stmt = $this->pdo->prepare($query);
-            $stmt->execute([$user_id]);
-        } else {
-            $stmt = $this->pdo->prepare($query);
-            $stmt->execute();
+            $params[] = $user_id;
         }
+        if ($registration_status !== null) {
+            if ($registration_status === 'N/A') {
+                $query .= " AND r.status IS NULL";
+            } else {
+                $query .= " AND r.status = ?";
+                $params[] = $registration_status;
+            }
+        }
+        $stmt = $this->pdo->prepare($query);
+        $stmt->execute($params);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
