@@ -53,12 +53,20 @@ class Registration {
 
     public function updateApproval($lead_id, $field, $status) {
         $stmt = $this->pdo->prepare("UPDATE registrations SET $field = ? WHERE lead_id = ?");
-        return $stmt->execute([$status, $lead_id]);
+        $result = $stmt->execute([$status, $lead_id]);
+        if (!$result) {
+            error_log("Failed to update $field to $status for lead_id: $lead_id");
+        }
+        return $result;
     }
 
     public function updateStatus($lead_id, $status) {
         $stmt = $this->pdo->prepare("UPDATE registrations SET status = ? WHERE lead_id = ?");
-        return $stmt->execute([$status, $lead_id]);
+        $result = $stmt->execute([$status, $lead_id]);
+        if (!$result) {
+            error_log("Failed to update status to $status for lead_id: $lead_id");
+        }
+        return $result;
     }
 
     public function getRegistrationByLeadId($lead_id) {
