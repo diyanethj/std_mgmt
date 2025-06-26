@@ -8,7 +8,9 @@ $auth = new AuthController($pdo);
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if ($auth->login($_POST['username'], $_POST['password'])) {
         error_log("Login successful, role: " . $_SESSION['role']);
-        header('Location: /std_mgmt/views/' . $_SESSION['role'] . '/dashboard.php');
+        $role = $_SESSION['role'];
+        $dashboard = $role === 'marketing_user' ? '/std_mgmt/views/marketing_user/dashboard.php' : "/std_mgmt/views/$role/dashboard.php";
+        header("Location: $dashboard");
         exit;
     } else {
         $error = "Invalid credentials";

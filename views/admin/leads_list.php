@@ -39,12 +39,16 @@ $courses = $leadController->getLeadsByCourse(null);
                 <th>Full Name</th>
                 <th>Email</th>
                 <th>Phone</th>
+                <th>Action</th>
             </tr>
             <?php foreach ($leads as $lead): ?>
             <tr>
                 <td><?php echo htmlspecialchars($lead['full_name']); ?></td>
                 <td><?php echo htmlspecialchars($lead['email']); ?></td>
                 <td><?php echo htmlspecialchars($lead['phone']); ?></td>
+                <td>
+                    <a href="/std_mgmt/views/admin/assign_lead.php?lead_id=<?php echo htmlspecialchars((string)$lead['id']); ?>" class="btn btn-primary">Assign Lead</a>
+                </td>
             </tr>
             <?php endforeach; ?>
         </table>

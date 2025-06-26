@@ -22,7 +22,7 @@ class LeadController {
             exit;
         }
         if (($handle = fopen($file['tmp_name'], "r")) !== FALSE) {
-            fgetcsv($handle); // Skip header
+            fgetcsv($handle);
             $row = 1;
             $success_count = 0;
             while (($data = fgetcsv($handle)) !== FALSE) {
@@ -60,12 +60,16 @@ class LeadController {
         return $this->leadModel->assignLead($lead_id, $user_id);
     }
 
-    public function getLeadsByCourse($course_name) {
-        return $this->leadModel->getLeadsByCourse($course_name); // Use leadModel
+    public function getLeadsByCourse($course_name, $user_id = null) {
+        return $this->leadModel->getLeadsByCourse($course_name, $user_id);
     }
 
     public function getAssignedLeads($user_id = null) {
         return $this->leadModel->getAssignedLeads($user_id);
+    }
+
+    public function getLeadById($lead_id) {
+        return $this->leadModel->getLeadById($lead_id);
     }
 
     public function sendToRegistration($lead_id) {

@@ -19,32 +19,38 @@ class Lead {
         return $stmt->execute([$user_id, $lead_id]);
     }
 
-    public function updateStatus($lead_id, $status) {
-        $stmt = $this->pdo->prepare("UPDATE leads SET status = ? WHERE id = ?");
-        return $stmt->execute([$status, $lead_id]);
-    }
-
-    public function getLeadsByCourse($course_name) {
+    public function getLeadsByCourse($course_name, $user_id = null) {
         if ($course_name) {
-            $stmt = $this->pdo->prepare("SELECT * FROM leads WHERE form_name = ?");
-            $stmt->execute([$course_name]);
+            $query = "SELECT * FROM leads WHERE form_name = ?";
+            $params = [$course_name];
+            if ($user_id !== null) {
+                $query .= " AND assigned_user_id = ?";
+                $params[] = $user_id;
+            }
+            $stmt = $this->pdo->prepare($query);
+            $stmt->execute($params);
         } else {
-            $stmt = $this->pdo->prepare("SELECT DISTINCT form_name FROM leads");
-            $stmt->execute();
+            $query = "SELECT DISTINCT form_name FROM leads";
+            if ($user_id !== null) {
+                $query .= " WHERE assigned_user_id = ?";
+                $stmt = $this->pdo->prepare($query);
+                $stmt->execute([$user_id]);
+            } else {
+                $stmt = $this->pdo->prepare($query);
+                $stmt->execute();
+            }
         }
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        error_log("getLeadsByCourse($course_name) returned: " . print_r($results, true));
+        error_log("getLeadsByCourse($course_name, $user_id) returned: " . print_r($results, true));
         return $results;
     }
 
     public function getAssignedLeads($user_id = null) {
-        $query = "SELECT * FROM leads WHERE status = 'assigned'";
-        if ($user_id) {
-            $query .= " AND assigned_user_id = ?";
-            $stmt = $this->pdo->prepare($query);
+        if ($user_id !== null) {
+            $stmt = $this->pdo->prepare("SELECT * FROM leads WHERE assigned_user_id = ?");
             $stmt->execute([$user_id]);
         } else {
-            $stmt = $this->pdo->prepare($query);
+            $stmt = $this->pdo->prepare("SELECT * FROM leads WHERE assigned_user_id IS NOT NULL");
             $stmt->execute();
         }
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -54,5 +60,10 @@ class Lead {
         $stmt = $this->pdo->prepare("SELECT * FROM leads WHERE id = ?");
         $stmt->execute([$lead_id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    public function updateStatus($lead_id, $status) {
+        $stmt = $this->pdo->prepare("UPDATE leads SET status = ? WHERE id = ?");
+        return $stmt->execute([$status, $lead_id]);
     }
 }

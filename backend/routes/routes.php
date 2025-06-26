@@ -1,4 +1,5 @@
 <?php
+session_start();
 require_once __DIR__ . '/../config/db_connect.php';
 require_once __DIR__ . '/../controllers/AuthController.php';
 require_once __DIR__ . '/../controllers/LeadController.php';
@@ -19,8 +20,9 @@ switch ($request) {
     case '/std_mgmt/login':
         if ($method === 'POST') {
             if ($authController->login($_POST['username'], $_POST['password'])) {
-                error_log("Session after login: " . print_r($_SESSION, true));
-                header('Location: /std_mgmt/views/' . $_SESSION['role'] . '/dashboard.php');
+                $role = $_SESSION['role'];
+                $dashboard = $role === 'marketing_user' ? '/std_mgmt/views/marketing_user/dashboard.php' : "/std_mgmt/views/$role/dashboard.php";
+                header("Location: $dashboard");
                 exit;
             } else {
                 header('Location: /std_mgmt/views/auth/login.php?error=Invalid credentials');
@@ -49,28 +51,73 @@ switch ($request) {
         break;
     case '/std_mgmt/admin/assign_lead':
         if ($method === 'POST') {
-            $leadController->assignLead($_POST['lead_id'], $_POST['user_id']);
+            $user = $authController->getCurrentUser();
+            if ($user && $user['role'] === 'admin') {
+                if (isset($_POST['lead_id'], $_POST['user_id']) && is_numeric($_POST['lead_id']) && is_numeric($_POST['user_id'])) {
+                    $leadController->assignLead($_POST['lead_id'], $_POST['user_id']);
+                    header('Location: /std_mgmt/views/admin/leads_list.php?success=Lead assigned successfully');
+                    exit;
+                } else {
+                    header('Location: /std_mgmt/views/admin/leads_list.php?error=Invalid lead or user ID');
+                    exit;
+                }
+            } else {
+                header('Location: /std_mgmt/views/auth/login.php?error=Unauthorized access');
+                exit;
+            }
         }
         break;
     case '/std_mgmt/marketing/send_registration':
         if ($method === 'POST') {
-            $leadController->sendToRegistration($_POST['lead_id']);
-            $registrationController->createRegistration($_POST['lead_id']);
+            $user = $authController->getCurrentUser();
+            if ($user && $user['role'] === 'marketing_user') {
+                $leadController->sendToRegistration($_POST['lead_id']);
+                $registrationController->createRegistration($_POST['lead_id']);
+                header('Location: /std_mgmt/views/marketing_user/pending_registrations.php?success=Lead sent to registration');
+                exit;
+            } else {
+                header('Location: /std_mgmt/views/auth/login.php?error=Unauthorized access');
+                exit;
+            }
         }
         break;
     case '/std_mgmt/marketing/upload_document':
         if ($method === 'POST') {
-            $documentController->uploadDocument($_POST['lead_id'], $_POST['document_type'], $_FILES['document']);
+            $user = $authController->getCurrentUser();
+            if ($user && $user['role'] === 'marketing_user') {
+                $documentController->uploadDocument($_POST['lead_id'], $_POST['document_type'], $_FILES['document']);
+                header('Location: /std_mgmt/views/marketing_user/assigned_leads.php?success=Document uploaded');
+                exit;
+            } else {
+                header('Location: /std_mgmt/views/auth/login.php?error=Unauthorized access');
+                exit;
+            }
         }
         break;
     case '/std_mgmt/marketing/add_followup':
         if ($method === 'POST') {
-            $followupController->addFollowup($_POST['lead_id'], $_POST['date'], $_POST['comment']);
+            $user = $authController->getCurrentUser();
+            if ($user && $user['role'] === 'marketing_user') {
+                $followupController->addFollowup($_POST['lead_id'], $_POST['date'], $_POST['comment']);
+                header('Location: /std_mgmt/views/marketing_user/assigned_leads.php?success=Follow-up added');
+                exit;
+            } else {
+                header('Location: /std_mgmt/views/auth/login.php?error=Unauthorized access');
+                exit;
+            }
         }
         break;
     case '/std_mgmt/registration/approve':
         if ($method === 'POST') {
-            $registrationController->approveRegistration($_POST['lead_id'], $_POST['role'], $_POST['status']);
+            $user = $authController->getCurrentUser();
+            if ($user && in_array($user['role'], ['marketing_manager', 'academic_user'])) {
+                $registrationController->approveRegistration($_POST['lead_id'], $_POST['role'], $_POST['status']);
+                header('Location: /std_mgmt/views/' . $user['role'] . '/pending_registrations.php?success=Registration updated');
+                exit;
+            } else {
+                header('Location: /std_mgmt/views/auth/login.php?error=Unauthorized access');
+                exit;
+            }
         }
         break;
 }
