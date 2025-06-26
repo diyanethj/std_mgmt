@@ -1,90 +1,78 @@
-<?php 
-  include __DIR__ . '/../layouts/header.php'; 
-  require_once __DIR__ . '/../../backend/controllers/RegistrationController.php';
-  require_once __DIR__ . '/../../backend/controllers/LeadController.php';
-  require_once __DIR__ . '/../../backend/controllers/DocumentController.php';
-  require_once __DIR__ . '/../../backend/controllers/FollowupController.php';
-  $registrationController = new RegistrationController($pdo);
-  $leadController = new LeadController($pdo);
-  $documentController = new DocumentController($pdo);
-  $followupController = new FollowupController($pdo);
+<?php
+include __DIR__ . '/../layouts/header.php';
+require_once __DIR__ . '/../../backend/controllers/RegistrationController.php';
+require_once __DIR__ . '/../../backend/controllers/AuthController.php';
+$registrationController = new RegistrationController($pdo);
+$authController = new AuthController($pdo);
 
-  $user = $_SESSION['user_id'] ?? null;
-  $role = $_SESSION['role'] ?? null;
-  $courses = $registrationController->getPendingRegistrations($user, $role);
-  $course_list = array_unique(array_column($courses, 'form_name'));
+$user = $authController->getCurrentUser();
+$course = $_GET['course'] ?? '';
+$user_id = $user['id']; // Restrict to logged-in marketing user
 
-  if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['approve_registration']) && in_array($role, ['marketing_manager', 'academic_user'])) {
-      $lead_id = (int)$_POST['lead_id'];
-      $status = $_POST['status'];
-      if ($registrationController->approveRegistration($lead_id, $role, $status)) {
-          header('Location: /std_mgmt/views/' . $role . '/pending_registrations.php?success=Registration ' . $status);
-          exit;
-      } else {
-          echo '<p style="color: red;">Error: Failed to update registration.</p>';
-      }
-  }
-  ?>
-  <h2>Pending Registrations</h2>
-  <?php if (isset($_GET['success'])): ?>
-      <p style="color: green;"><?php echo htmlspecialchars($_GET['success']); ?></p>
-  <?php endif; ?>
-  <?php if (empty($course_list)): ?>
-      <p>No pending registrations found.</p>
-  <?php else: ?>
-      <table class="table" id="dataTable">
-          <tr>
-              <th>Course Name</th>
-              <th>Lead Count</th>
-              <th>Action</th>
-          </tr>
-          <?php foreach ($course_list as $course): ?>
-          <tr>
-              <td><?php echo htmlspecialchars($course); ?></td>
-              <td><?php echo count(array_filter($courses, fn($c) => $c['form_name'] === $course)); ?></td>
-              <td><a href="?course=<?php echo urlencode($course); ?>" class="btn btn-primary">View Leads</a></td>
-          </tr>
-          <?php endforeach; ?>
-      </table>
-  <?php endif; ?>
-  <?php if (isset($_GET['course'])): ?>
-      <h3>Pending Registrations for <?php echo htmlspecialchars($_GET['course']); ?></h3>
-      <?php $leads = array_filter($courses, fn($c) => $c['form_name'] === $_GET['course']); ?>
-      <?php if (empty($leads)): ?>
-          <p>No pending registrations for this course.</p>
-      <?php else: ?>
-          <table class="table">
-              <tr>
-                  <th>Full Name</th>
-                  <th>Email</th>
-                  <th>Phone</th>
-                  <th>Action</th>
-              </tr>
-              <?php foreach ($leads as $lead): ?>
-              <tr>
-                  <td><?php echo htmlspecialchars($lead['full_name']); ?></td>
-                  <td><?php echo htmlspecialchars($lead['email']); ?></td>
-                  <td><?php echo htmlspecialchars($lead['phone']); ?></td>
-                  <td>
-                      <a href="/std_mgmt/views/<?php echo $role; ?>/lead_details.php?lead_id=<?php echo htmlspecialchars((string)$lead['lead_id']); ?>" class="btn btn-primary">View Details</a>
-                      <?php if (in_array($role, ['marketing_manager', 'academic_user'])): ?>
-                          <form method="POST" style="display:inline;">
-                              <input type="hidden" name="approve_registration" value="1">
-                              <input type="hidden" name="lead_id" value="<?php echo htmlspecialchars((string)$lead['lead_id']); ?>">
-                              <input type="hidden" name="status" value="accepted">
-                              <button type="submit" class="btn btn-success">Accept</button>
-                          </form>
-                          <form method="POST" style="display:inline;">
-                              <input type="hidden" name="approve_registration" value="1">
-                              <input type="hidden" name="lead_id" value="<?php echo htmlspecialchars((string)$lead['lead_id']); ?>">
-                              <input type="hidden" name="status" value="declined">
-                              <button type="submit" class="btn btn-danger">Decline</button>
-                          </form>
-                      <?php endif; ?>
-                  </td>
-              </tr>
-              <?php endforeach; ?>
-          </table>
-      <?php endif; ?>
-  <?php endif; ?>
-  <?php include __DIR__ . '/../layouts/footer.php'; ?>
+// Get distinct courses with pending registrations for this marketing user
+$pending_registrations = $registrationController->getPendingRegistrations($user_id);
+$course_list = array_unique(array_column($pending_registrations, 'form_name'));
+
+if ($course) {
+    $pending_registrations = $registrationController->getPendingRegistrations($user_id, $course);
+} else {
+    $pending_registrations = [];
+}
+?>
+<h2>Pending Registrations</h2>
+<?php if (isset($_GET['success'])): ?>
+    <p style="color: green;"><?php echo htmlspecialchars($_GET['success']); ?></p>
+<?php endif; ?>
+<?php if (isset($error)): ?>
+    <p style="color: red;"><?php echo htmlspecialchars($error); ?></p>
+<?php endif; ?>
+
+<?php if (empty($course_list)): ?>
+    <p>No pending registrations found.</p>
+<?php else: ?>
+    <h3>Courses</h3>
+    <table class="table" id="dataTable">
+        <tr>
+            <th>Course Name</th>
+            <th>Pending Registration Count</th>
+            <th>Action</th>
+        </tr>
+        <?php foreach ($course_list as $course_name): ?>
+        <tr>
+            <td><?php echo htmlspecialchars($course_name); ?></td>
+            <td><?php echo count($registrationController->getPendingRegistrations($user_id, $course_name)); ?></td>
+            <td><a href="?course=<?php echo urlencode($course_name); ?>" class="btn btn-primary">View Registrations</a></td>
+        </tr>
+        <?php endforeach; ?>
+    </table>
+<?php endif; ?>
+<?php if ($course && !empty($pending_registrations)): ?>
+    <h3>Pending Registrations for <?php echo htmlspecialchars($course); ?></h3>
+    <table class="table">
+        <tr>
+            <th>Full Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Permanent Address</th>
+            <th>Work Experience</th>
+            <th>Marketing Manager Approval</th>
+            <th>Academic User Approval</th>
+            <th>Actions</th>
+        </tr>
+        <?php foreach ($pending_registrations as $registration): ?>
+        <tr>
+            <td><?php echo htmlspecialchars($registration['full_name']); ?></td>
+            <td><?php echo htmlspecialchars($registration['email']); ?></td>
+            <td><?php echo htmlspecialchars($registration['phone']); ?></td>
+            <td><?php echo htmlspecialchars($registration['permanent_address'] ?: 'N/A'); ?></td>
+            <td><?php echo htmlspecialchars($registration['work_experience'] ?: 'N/A'); ?></td>
+            <td><?php echo htmlspecialchars($registration['marketing_manager_approval']); ?></td>
+            <td><?php echo htmlspecialchars($registration['academic_user_approval']); ?></td>
+            <td>
+                <a href="/std_mgmt/views/marketing_user/lead_details.php?lead_id=<?php echo htmlspecialchars((string)$registration['lead_id']); ?>" class="btn btn-primary">View Details</a>
+            </td>
+        </tr>
+        <?php endforeach; ?>
+    </table>
+<?php endif; ?>
+<?php include __DIR__ . '/../layouts/footer.php'; ?>
