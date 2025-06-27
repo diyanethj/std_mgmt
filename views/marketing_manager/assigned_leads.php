@@ -5,6 +5,12 @@ require_once __DIR__ . '/../../backend/controllers/AuthController.php';
 $leadController = new LeadController($pdo);
 $authController = new AuthController($pdo);
 
+$user = $authController->getCurrentUser();
+if (!$user || $user['role'] !== 'marketing_manager') {
+    header('Location: /std_mgmt/views/auth/login.php?error=Unauthorized access');
+    exit;
+}
+
 $course = $_GET['course'] ?? '';
 $user_id = $_GET['user_id'] ?? '';
 $registration_status = $_GET['registration_status'] ?? '';
@@ -23,7 +29,7 @@ if ($course) {
 <?php endif; ?>
 
 <!-- Filters -->
-<form method="GET" action="/std_mgmt/views/admin/assigned_leads.php">
+<form method="GET" action="/std_mgmt/views/marketing_manager/assigned_leads.php">
     <div class="form-group">
         <label for="user_id">Filter by Marketing User</label>
         <select name="user_id" id="user_id">
@@ -90,7 +96,7 @@ if ($course) {
             <td><?php echo htmlspecialchars($lead['username'] ?: 'N/A'); ?></td>
             <td><?php echo htmlspecialchars($lead['registration_status'] ?: 'N/A'); ?></td>
             <td>
-                <a href="/std_mgmt/views/admin/lead_details.php?lead_id=<?php echo htmlspecialchars((string)$lead['id']); ?>" class="btn btn-primary">View Details</a>
+                <a href="/std_mgmt/views/marketing_manager/lead_details.php?lead_id=<?php echo htmlspecialchars((string)$lead['id']); ?>" class="btn btn-primary">View Details</a>
             </td>
         </tr>
         <?php endif; ?>
