@@ -43,6 +43,7 @@ if (!$user) {
                 <a href="/std_mgmt/views/marketing_manager/leads_list.php">Leads List</a>
                 <a href="/std_mgmt/views/marketing_manager/pending_registrations.php">Pending Registrations</a>
                 <a href="/std_mgmt/views/marketing_manager/registered_leads.php">Registered Leads</a>
+                <a href="/std_mgmt/views/marketing_manager/declined_leads.php">Declined Leads</a>
             <?php elseif ($user['role'] === 'academic_user'): ?>
                 <a href="/std_mgmt/views/academic_user/dashboard.php">Dashboard</a>
                 <a href="/std_mgmt/views/academic_user/pending_registrations.php">Pending Registrations</a>

@@ -1,83 +1,130 @@
-<?php 
-include __DIR__ . '/../layouts/header.php'; 
+<?php
+include __DIR__ . '/../layouts/header.php';
 require_once __DIR__ . '/../../backend/controllers/RegistrationController.php';
+require_once __DIR__ . '/../../backend/controllers/AuthController.php';
 require_once __DIR__ . '/../../backend/controllers/LeadController.php';
-require_once __DIR__ . '/../../backend/controllers/DocumentController.php';
-require_once __DIR__ . '/../../backend/controllers/FollowupController.php';
 $registrationController = new RegistrationController($pdo);
+$authController = new AuthController($pdo);
 $leadController = new LeadController($pdo);
-$documentController = new DocumentController($pdo);
-$followupController = new FollowupController($pdo);
-$pending = $registrationController->getPendingRegistrations();
-$lead_id = $_GET['lead_id'] ?? null;
 
-if ($lead_id) {
-    $lead = $leadController->getLeadById($lead_id);
-    $documents = $documentController->getDocumentsByLead($lead_id);
-    $followups = $followupController->getFollowupsByLead($lead_id);
+$user = $authController->getCurrentUser();
+if (!$user || $user['role'] !== 'marketing_manager') {
+    header('Location: /std_mgmt/views/auth/login.php?error=Unauthorized access');
+    exit;
+}
+
+$course = $_GET['course'] ?? '';
+$user_id = $_GET['user_id'] ?? '';
+$marketing_users = $authController->getUsersByRole('marketing_user');
+
+// Get distinct courses with pending registrations
+$registrations = $registrationController->getPendingRegistrations();
+$course_list = array_unique(array_column($registrations, 'form_name'));
+
+if ($course) {
+    $pending_registrations = $registrationController->getPendingRegistrations($user_id ?: null, $course);
+} else {
+    $pending_registrations = [];
+}
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $lead_id = (int)$_POST['lead_id'];
+    $action = $_POST['action'];
+    $role = $_POST['role'];
+    if ($action === 'approve') {
+        if ($registrationController->approveRegistration($lead_id, $role)) {
+            header('Location: /std_mgmt/views/marketing_manager/pending_registrations.php?course=' . urlencode($course) . '&user_id=' . urlencode($user_id) . '&success=Registration approved successfully');
+            exit;
+        } else {
+            $error = 'Failed to approve registration';
+        }
+    } elseif ($action === 'decline') {
+        if ($registrationController->declineRegistration($lead_id, $role)) {
+            header('Location: /std_mgmt/views/marketing_manager/pending_registrations.php?course=' . urlencode($course) . '&user_id=' . urlencode($user_id) . '&success=Registration declined successfully');
+            exit;
+        } else {
+            $error = 'Failed to decline registration';
+        }
+    }
 }
 ?>
 <h2>Pending Registrations</h2>
-<table class="table">
-    <tr>
-        <th>Full Name</th>
-        <th>Course</th>
-        <th>Email</th>
-        <th>Phone</th>
-        <th>Action</th>
-    </tr>
-    <?php foreach ($pending as $registration): ?>
-    <tr>
-        <td><?php echo htmlspecialchars($registration['full_name']); ?></td>
-        <td><?php echo htmlspecialchars($registration['form_name']); ?></td>
-        <td><?php echo htmlspecialchars($registration['email']); ?></td>
-        <td><?php echo htmlspecialchars($registration['phone']); ?></td>
-        <td><a href="/std_mgmt/views/marketing_manager/pending_registrations.php?lead_id=<?php echo htmlspecialchars($registration['lead_id']); ?>" class="btn btn-primary">View Details</a></td>
-    </tr>
-    <?php endforeach; ?>
-</table>
+<?php if (isset($_GET['success'])): ?>
+    <p style="color: green;"><?php echo htmlspecialchars($_GET['success']); ?></p>
+<?php endif; ?>
+<?php if (isset($error)): ?>
+    <p style="color: red;"><?php echo htmlspecialchars($error); ?></p>
+<?php endif; ?>
 
-<?php if ($lead_id): ?>
-    <h3>Lead Details</h3>
-    <p>Name: <?php echo htmlspecialchars($lead['full_name']); ?></p>
-    <p>Email: <?php echo htmlspecialchars($lead['email']); ?></p>
-    <p>Phone: <?php echo htmlspecialchars($lead['phone']); ?></p>
-    <p>Address: <?php echo htmlspecialchars($lead['permanent_address'] ?? 'Not provided'); ?></p>
-    <p>Work Experience: <?php echo htmlspecialchars($lead['work_experience'] ?? 'Not provided'); ?></p>
+<!-- Filter by Marketing User -->
+<form method="GET" action="/std_mgmt/views/marketing_manager/pending_registrations.php">
+    <div class="form-group">
+        <label for="user_id">Filter by Marketing User</label>
+        <select name="user_id" id="user_id">
+            <option value="">All</option>
+            <?php foreach ($marketing_users as $user): ?>
+                <option value="<?php echo htmlspecialchars((string)$user['id']); ?>" <?php echo $user_id == $user['id'] ? 'selected' : ''; ?>>
+                    <?php echo htmlspecialchars($user['username']); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+    </div>
+    <?php if ($course): ?>
+        <input type="hidden" name="course" value="<?php echo htmlspecialchars($course); ?>">
+    <?php endif; ?>
+    <button type="submit" class="btn btn-primary">Apply Filter</button>
+</form>
 
-    <h4>Documents</h4>
-    <table class="table">
+<?php if (empty($course_list)): ?>
+    <p>No pending registrations found.</p>
+<?php else: ?>
+    <h3>Courses</h3>
+    <table class="table" id="dataTable">
         <tr>
-            <th>Type</th>
-            <th>File</th>
+            <th>Course Name</th>
+            <th>Pending Registration Count</th>
+            <th>Action</th>
         </tr>
-        <?php foreach ($documents as $document): ?>
+        <?php foreach ($course_list as $course_name): ?>
         <tr>
-            <td><?php echo htmlspecialchars($document['document_type']); ?></td>
-            <td><a href="/std_mgmt/<?php echo htmlspecialchars($document['file_path']); ?>">View</a></td>
-        </tr>
-        <?php endforeach; ?>
-    </table>
-
-    <h4>Follow-ups</h4>
-    <table class="table">
-        <tr>
-            <th>Date</th>
-            <th>Comment</th>
-        </tr>
-        <?php foreach ($followups as $followup): ?>
-        <tr>
-            <td><?php echo htmlspecialchars($followup['followup_date']); ?></td>
-            <td><?php echo htmlspecialchars($followup['comment']); ?></td>
+            <td><?php echo htmlspecialchars($course_name); ?></td>
+            <td><?php echo count($registrationController->getPendingRegistrations($user_id ?: null, $course_name)); ?></td>
+            <td><a href="?course=<?php echo urlencode($course_name); ?>&user_id=<?php echo urlencode($user_id); ?>" class="btn btn-primary">View Registrations</a></td>
         </tr>
         <?php endforeach; ?>
     </table>
-
-    <form method="POST" action="/std_mgmt/registration/approve">
-        <input type="hidden" name="lead_id" value="<?php echo htmlspecialchars($lead_id); ?>">
-        <input type="hidden" name="role" value="marketing_manager">
-        <button type="submit" name="status" value="approved" class="btn btn-primary">Approve</button>
-        <button type="submit" name="status" value="declined" class="btn btn-danger">Decline</button>
-    </form>
+<?php endif; ?>
+<?php if ($course && !empty($pending_registrations)): ?>
+    <h3>Pending Registrations for <?php echo htmlspecialchars($course); ?></h3>
+    <table class="table">
+        <tr>
+            <th>Full Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Assigned To</th>
+            <th>Marketing Manager Approval</th>
+            <th>Academic User Approval</th>
+            <th>Actions</th>
+        </tr>
+        <?php foreach ($pending_registrations as $registration): ?>
+        <tr>
+            <td><?php echo htmlspecialchars($registration['full_name']); ?></td>
+            <td><?php echo htmlspecialchars($registration['email']); ?></td>
+            <td><?php echo htmlspecialchars($registration['phone']); ?></td>
+            <td><?php echo htmlspecialchars($registration['username'] ?: 'N/A'); ?></td>
+            <td><?php echo htmlspecialchars($registration['marketing_manager_approval']); ?></td>
+            <td><?php echo htmlspecialchars($registration['academic_user_approval']); ?></td>
+            <td>
+                <form method="POST" action="/std_mgmt/views/marketing_manager/pending_registrations.php?course=<?php echo urlencode($course); ?>&user_id=<?php echo urlencode($user_id); ?>" style="display: inline;">
+                    <input type="hidden" name="lead_id" value="<?php echo htmlspecialchars((string)$registration['lead_id']); ?>">
+                    <input type="hidden" name="role" value="marketing_manager">
+                    <button type="submit" name="action" value="approve" class="btn btn-success" <?php echo $registration['marketing_manager_approval'] !== 'pending' ? 'disabled' : ''; ?>>Accept (MM)</button>
+                    <button type="submit" name="action" value="decline" class="btn btn-danger" <?php echo $registration['marketing_manager_approval'] !== 'pending' ? 'disabled' : ''; ?>>Decline (MM)</button>
+                </form>
+                <a href="/std_mgmt/views/marketing_manager/lead_details.php?lead_id=<?php echo htmlspecialchars((string)$registration['lead_id']); ?>" class="btn btn-primary">View Details</a>
+            </td>
+        </tr>
+        <?php endforeach; ?>
+    </table>
 <?php endif; ?>
 <?php include __DIR__ . '/../layouts/footer.php'; ?>
