@@ -29,5 +29,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_FILES['csv_file'])) {
     </div>
     <button type="submit" class="btn btn-primary">Upload</button>
 </form>
-<p><strong>CSV Format:</strong> form_name,full_name,email,phone</p>
 <?php include __DIR__ . '/../layouts/footer.php'; ?>
