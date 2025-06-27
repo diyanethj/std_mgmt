@@ -11,7 +11,11 @@ class Lead {
             return false;
         }
         $stmt = $this->pdo->prepare("INSERT INTO leads (form_name, full_name, email, phone, status) VALUES (?, ?, ?, ?, 'new')");
-        return $stmt->execute([$form_name, $full_name, $email, $phone]);
+        $result = $stmt->execute([$form_name, $full_name, $email, $phone]);
+        if (!$result) {
+            error_log("Failed to create lead: " . print_r([$form_name, $full_name, $email, $phone], true));
+        }
+        return $result;
     }
 
     public function assignLead($lead_id, $user_id) {

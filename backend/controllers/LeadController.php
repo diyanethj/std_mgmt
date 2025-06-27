@@ -15,21 +15,21 @@ class LeadController {
         $this->followupModel = new Followup($pdo);
     }
 
-    public function uploadLeads($file) {
+    public function uploadLeads($file, $user) {
         if ($file['error'] !== UPLOAD_ERR_OK) {
             error_log("File upload error: " . $file['error']);
-            header('Location: /std_mgmt/views/admin/upload_leads.php?error=File upload failed');
+            header('Location: /std_mgmt/views/' . ($user['role'] === 'marketing_manager' ? 'marketing_manager' : 'admin') . '/upload_leads.php?error=File upload failed');
             exit;
         }
         if (($handle = fopen($file['tmp_name'], "r")) !== FALSE) {
-            fgetcsv($handle);
+            fgetcsv($handle); // Skip header
             $row = 1;
             $success_count = 0;
             while (($data = fgetcsv($handle)) !== FALSE) {
                 $row++;
                 if (count($data) < 4) {
                     error_log("Invalid CSV format at row $row: " . print_r($data, true));
-                    header('Location: /std_mgmt/views/admin/upload_leads.php?error=Invalid CSV format at row ' . $row);
+                    header('Location: /std_mgmt/views/' . ($user['role'] === 'marketing_manager' ? 'marketing_manager' : 'admin') . '/upload_leads.php?error=Invalid CSV format at row ' . $row);
                     exit;
                 }
                 $form_name = trim($data[0] ?? '');
@@ -47,11 +47,11 @@ class LeadController {
                 }
             }
             fclose($handle);
-            header('Location: /std_mgmt/views/admin/upload_leads.php?success=Uploaded ' . $success_count . ' leads successfully');
+            header('Location: /std_mgmt/views/' . ($user['role'] === 'marketing_manager' ? 'marketing_manager' : 'admin') . '/upload_leads.php?success=Uploaded ' . $success_count . ' leads successfully');
             exit;
         } else {
             error_log("Unable to open CSV file: " . $file['tmp_name']);
-            header('Location: /std_mgmt/views/admin/upload_leads.php?error=Unable to open CSV file');
+            header('Location: /std_mgmt/views/' . ($user['role'] === 'marketing_manager' ? 'marketing_manager' : 'admin') . '/upload_leads.php?error=Unable to open CSV file');
             exit;
         }
     }
