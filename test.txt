@@ -1,0 +1,7 @@
+i renamed "views/finance" folder to "finance_user".
+need big update. need assign payment plans for registering leads. in marketing user, lead_details.php page, marketing user can assign payment plan using dropdown and if need can add dicount for assigned payment plan.payment plans and discount policy attached with this message.
+
+registered students can view finance user course wise.with phone, address, full name and assigned plans due payments if have, next payments if have.in payment plan, each installment automatically generate need for input boxes for date,amount,followup number,follow up date,comment automatically generate need with payment plan.also need show 
+finance_user doing collect of each registered lead next payments and due payments
+each plan need.finance_user can input collected amounts.when entering amounts balances are need auto update.i think you know payments collection system with full function. give me that updates
+discount and collection complete system need.using

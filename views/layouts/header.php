@@ -37,6 +37,9 @@ if (!$user) {
                 <a href="/std_mgmt/views/marketing_user/pending_registrations.php">Pending Registrations</a>
                 <a href="/std_mgmt/views/marketing_user/registered_leads.php">Registered Leads</a>
                 <a href="/std_mgmt/views/marketing_user/declined_leads.php">Declined Leads</a>
+            <?php elseif ($user['role'] === 'finance_user'): ?>
+                <a href="/std_mgmt/views/finance_user/dashboard.php">Dashboard</a>
+                <a href="/std_mgmt/views/finance_user/registered_leads.php">Registered Leads</a>
             <?php elseif ($user['role'] === 'marketing_manager'): ?>
                 <a href="/std_mgmt/views/marketing_manager/dashboard.php">Dashboard</a>
                 <a href="/std_mgmt/views/marketing_manager/upload_leads.php">Upload Leads</a>
