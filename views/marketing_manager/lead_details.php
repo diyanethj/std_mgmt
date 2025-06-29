@@ -3,100 +3,101 @@ include __DIR__ . '/../layouts/header.php';
 require_once __DIR__ . '/../../backend/controllers/LeadController.php';
 require_once __DIR__ . '/../../backend/controllers/DocumentController.php';
 require_once __DIR__ . '/../../backend/controllers/FollowupController.php';
-require_once __DIR__ . '/../../backend/controllers/RegistrationController.php';
+require_once __DIR__ . '/../../backend/controllers/AuthController.php';
+
 $leadController = new LeadController($pdo);
 $documentController = new DocumentController($pdo);
 $followupController = new FollowupController($pdo);
-$registrationController = new RegistrationController($pdo);
+$authController = new AuthController($pdo);
 
-if (!isset($_GET['lead_id']) || !is_numeric($_GET['lead_id'])) {
-    echo '<p style="color: red;">Error: No valid lead ID provided.</p>';
-    include __DIR__ . '/../layouts/footer.php';
+$user = $authController->getCurrentUser();
+if (!$user || $user['role'] !== 'marketing_manager') {
+    header('Location: /std_mgmt/views/auth/login.php?error=Unauthorized access');
     exit;
 }
-$lead_id = (int)$_GET['lead_id'];
+
+$lead_id = $_GET['lead_id'] ?? null;
+$course = $_GET['course'] ?? null;
+
+if (!$lead_id) {
+    header('Location: /std_mgmt/views/marketing_manager/registered_leads.php?error=Lead ID not provided');
+    exit;
+}
+
 $lead = $leadController->getLeadById($lead_id);
+$documents = method_exists($documentController, 'getDocumentsByLeadId') ? $documentController->getDocumentsByLeadId($lead_id) : [];
+$followups = method_exists($followupController, 'getFollowupsByLeadId') ? $followupController->getFollowupsByLeadId($lead_id) : [];
+
+error_log("Marketing manager view details: lead_id=$lead_id, course=$course, lead=" . print_r($lead, true));
 
 if (!$lead) {
-    echo '<p style="color: red;">Error: Lead not found.</p>';
-    include __DIR__ . '/../layouts/footer.php';
+    header('Location: /std_mgmt/views/marketing_manager/registered_leads.php?error=Lead not found');
     exit;
 }
-
-$documents = $documentController->getDocumentsByLead($lead_id);
-$followups = $followupController->getFollowupsByLead($lead_id);
-$registration = $registrationController->getPendingRegistrations(null, null);
-$registration = array_filter($registration, fn($r) => $r['lead_id'] == $lead_id);
-$registration = !empty($registration) ? reset($registration) : null;
 ?>
-<h2>Lead Details</h2>
-<h3>Lead Information</h3>
-<table class="table">
-    <tr><th>Course Name</th><td><?php echo htmlspecialchars($lead['form_name']); ?></td></tr>
-    <tr><th>Full Name</th><td><?php echo htmlspecialchars($lead['full_name']); ?></td></tr>
-    <tr><th>Email</th><td><?php echo htmlspecialchars($lead['email']); ?></td></tr>
-    <tr><th>Phone</th><td><?php echo htmlspecialchars($lead['phone']); ?></td></tr>
-    <tr><th>Permanent Address</th><td><?php echo htmlspecialchars($lead['permanent_address'] ?: 'N/A'); ?></td></tr>
-    <tr><th>Work Experience</th><td><?php echo htmlspecialchars($lead['work_experience'] ?: 'N/A'); ?></td></tr>
-    <tr><th>Assigned To</th><td><?php echo htmlspecialchars($lead['username'] ?: 'N/A'); ?></td></tr>
-    <tr><th>Lead Status</th><td><?php echo htmlspecialchars($lead['status']); ?></td></tr>
-    <tr><th>Registration Status</th><td><?php echo htmlspecialchars($lead['registration_status'] ?: 'N/A'); ?></td></tr>
-    <?php if ($registration): ?>
-        <tr><th>Marketing Manager Approval</th><td><?php echo htmlspecialchars($registration['marketing_manager_approval']); ?></td></tr>
-        <tr><th>Academic User Approval</th><td><?php echo htmlspecialchars($registration['academic_user_approval']); ?></td></tr>
+<div class="container">
+    <h2 class="dashboard-title">Lead Details</h2>
+    <?php if (isset($_GET['success'])): ?>
+        <p style="color: green;"><?php echo htmlspecialchars($_GET['success']); ?></p>
     <?php endif; ?>
-    <tr><th>Created At</th><td><?php echo htmlspecialchars($lead['created_at']); ?></td></tr>
-</table>
+    <?php if (isset($_GET['error'])): ?>
+        <p style="color: red;"><?php echo htmlspecialchars($_GET['error']); ?></p>
+    <?php endif; ?>
 
-<h3>Documents</h3>
-<?php if (empty($documents)): ?>
-    <p>No documents uploaded.</p>
-<?php else: ?>
-    <table class="table">
-        <tr>
-            <th>Document Type</th>
-            <th>File</th>
-            <th>Uploaded At</th>
-        </tr>
-        <?php foreach ($documents as $doc): ?>
-        <tr>
-            <td><?php
-                $type_labels = [
-                    'nic' => 'NIC Copy',
-                    'education' => 'Education Documents',
-                    'work_experience' => 'Work Experience Documents',
-                    'birth_certificate' => 'Birth Certificate'
-                ];
-                echo htmlspecialchars($type_labels[$doc['document_type']] ?? $doc['document_type']);
-            ?></td>
-            <td><a href="/std_mgmt/uploads/documents/<?php echo htmlspecialchars(basename($doc['file_path'])); ?>" target="_blank">View</a></td>
-            <td><?php echo htmlspecialchars($doc['uploaded_at']); ?></td>
-        </tr>
-        <?php endforeach; ?>
-    </table>
-<?php endif; ?>
+    <div class="lead-details">
+        <p><strong>Name:</strong> <?php echo htmlspecialchars($lead['full_name']); ?></p>
+        <p><strong>Email:</strong> <?php echo htmlspecialchars($lead['email']); ?></p>
+        <p><strong>Phone:</strong> <?php echo htmlspecialchars($lead['phone']); ?></p>
+        <p><strong>Address:</strong> <?php echo htmlspecialchars($lead['permanent_address'] ?? 'Not provided'); ?></p>
+        <p><strong>Work Experience:</strong> <?php echo htmlspecialchars($lead['work_experience'] ?? 'Not provided'); ?></p>
+        <p><strong>Course:</strong> <?php echo htmlspecialchars($lead['form_name']); ?></p>
+        <p><strong>Status:</strong> <?php echo htmlspecialchars($lead['status']); ?></p>
+    </div>
 
-<h3>Follow-ups</h3>
-<?php if (empty($followups)): ?>
-    <p>No follow-ups added.</p>
-<?php else: ?>
-    <table class="table">
-        <tr>
-            <th>Number</th>
-            <th>Date</th>
-            <th>Comment</th>
-            <th>Created At</th>
-        </tr>
-        <?php foreach ($followups as $followup): ?>
-        <tr>
-            <td><?php echo htmlspecialchars($followup['number']); ?></td>
-            <td><?php echo htmlspecialchars($followup['followup_date']); ?></td>
-            <td><?php echo htmlspecialchars($followup['comment']); ?></td>
-            <td><?php echo htmlspecialchars($followup['created_at']); ?></td>
-        </tr>
-        <?php endforeach; ?>
-    </table>
-<?php endif; ?>
+    <h3>Documents</h3>
+    <?php if (empty($documents)): ?>
+        <p>No documents uploaded.</p>
+    <?php else: ?>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>File</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($documents as $document): ?>
+                <tr>
+                    <td><?php echo htmlspecialchars($document['document_type']); ?></td>
+                    <td><a href="/std_mgmt/uploads/<?php echo htmlspecialchars($document['file_name']); ?>" target="_blank">View</a></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    <?php endif; ?>
 
-<a href="/std_mgmt/views/marketing_manager/leads_list.php?course=<?php echo urlencode($lead['form_name']); ?>" class="btn btn-primary">Back</a>
+    <h3>Follow-ups</h3>
+    <?php if (empty($followups)): ?>
+        <p>No follow-ups recorded.</p>
+    <?php else: ?>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Comment</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($followups as $followup): ?>
+                <tr>
+                    <td><?php echo htmlspecialchars($followup['followup_date']); ?></td>
+                    <td><?php echo htmlspecialchars($followup['comment']); ?></td>
+                </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    <?php endif; ?>
+
+    <a href="/std_mgmt/views/marketing_manager/registered_leads.php?course=<?php echo urlencode($course); ?>" class="btn btn-secondary">Back to Leads</a>
+</div>
 <?php include __DIR__ . '/../layouts/footer.php'; ?>
