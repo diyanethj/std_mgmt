@@ -84,15 +84,33 @@ class LeadController {
         return $this->leadModel->updateLeadDetails($lead_id, $permanent_address, $work_experience);
     }
 
-    public function getTotalLeads() {
-        return 100; // Mock data
+    public function getTotalLeads()
+    {
+        return $this->leadModel->getTotalLeads();
     }
 
-    public function getPendingRegistrationsCount() {
-        return 25;
+    public function getNewLeads()
+    {
+        return $this->leadModel->getNewLeads();
     }
 
-    public function getAssignedLeadsCount() {
-        return 50;
+    public function getPendingRegistrationsCount() 
+    {
+        return $this->leadModel->getPendingRegistrationsCount();
+    }
+
+    public function getAssignedLeadsCount()
+    {
+        return $this->leadModel->getAssignedLeadsCount();
+    }
+
+    public function getRegisteredLeadsCount()
+    {
+        return $this->leadModel->getRegisteredLeadsCount();
+    }
+
+    public function getDeclinedLeadsCount()
+    {
+        return $this->leadModel->getDeclinedLeadsCount();
     }
 }

@@ -110,4 +110,46 @@ class Lead {
         $stmt = $this->pdo->prepare("UPDATE leads SET permanent_address = ?, work_experience = ? WHERE id = ?");
         return $stmt->execute([$permanent_address, $work_experience, $lead_id]);
     }
+
+    public function getTotalLeads()
+    {
+        $stmt = $this->pdo->query('SELECT COUNT(*) as total FROM leads');
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (int) $result['total'];
+    }
+
+    public function getAssignedLeadsCount()
+    {
+        $stmt = $this->pdo->query('SELECT COUNT(*) as total FROM leads where status="assigned" OR status="declined" OR status= "pending_registration"');
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (int) $result['total'];
+    }
+
+    public function getNewLeads()
+    {
+        $stmt = $this->pdo->query('SELECT COUNT(*) as total FROM leads where status="new"');
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (int) $result['total'];
+    }
+
+    public function getPendingRegistrationsCount()
+    {
+        $stmt = $this->pdo->query('SELECT COUNT(*) as total FROM registrations where status= "pending"');
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (int) $result['total'];
+    }
+
+    public function getRegisteredLeadsCount()
+    {
+        $stmt = $this->pdo->query('SELECT COUNT(*) as total FROM registrations where status= "completed"');
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (int) $result['total'];
+    }
+
+    public function getDeclinedLeadsCount()
+    {
+        $stmt = $this->pdo->query('SELECT COUNT(*) as total FROM registrations where status= "declined"');
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return (int) $result['total'];
+    }
 }

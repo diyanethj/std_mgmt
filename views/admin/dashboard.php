@@ -19,6 +19,10 @@ $leadController = new LeadController($pdo);
 $totalLeads = method_exists($leadController, 'getTotalLeads') ? $leadController->getTotalLeads() : 'N/A';
 $pendingRegistrations = method_exists($leadController, 'getPendingRegistrationsCount') ? $leadController->getPendingRegistrationsCount() : 'N/A';
 $assignedLeads = method_exists($leadController, 'getAssignedLeadsCount') ? $leadController->getAssignedLeadsCount() : 'N/A';
+$getNewLeads = method_exists($leadController, 'getNewLeads') ? $leadController->getNewLeads() : 'N/A';
+$getRegisteredLeadsCount = method_exists($leadController, 'getRegisteredLeadsCount') ? $leadController->getRegisteredLeadsCount() : 'N/A';
+$getDeclinedLeadsCount = method_exists($leadController, 'getDeclinedLeadsCount') ? $leadController->getDeclinedLeadsCount() : 'N/A';
+$getPendingRegistrationsCount = method_exists($leadController, 'getPendingRegistrationsCount') ? $leadController->getPendingRegistrationsCount() : 'N/A';
 
 define('BASE_PATH', '/std_mgmt');
 $currentPage = basename($_SERVER['PHP_SELF']);
@@ -105,24 +109,39 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             <div class="max-w-4xl mx-auto bg-white/80 backdrop-blur-md p-6 rounded-xl shadow-xl">
                 <h1 class="text-3xl font-bold mb-4 text-blue-900 text-shadow">Welcome, <?php echo htmlspecialchars($user['username']); ?> (Admin)</h1>
                 <p class="mb-6 text-gray-700 text-lg">Manage your leads and registrations efficiently from this dashboard.</p>
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
                     <div class="bg-gradient-to-br from-blue-100 to-blue-200 p-4 rounded-xl text-center shadow-lg hover:shadow-2xl transition-all duration-300">
                         <h3 class="text-lg font-semibold text-blue-800">Total Leads</h3>
                         <p class="text-3xl font-bold text-blue-600"><?php echo htmlspecialchars($totalLeads); ?></p>
                     </div>
                     <div class="bg-gradient-to-br from-yellow-100 to-yellow-200 p-4 rounded-xl text-center shadow-lg hover:shadow-2xl transition-all duration-300">
-                        <h3 class="text-lg font-semibold text-yellow-800">Pending Registrations</h3>
-                        <p class="text-3xl font-bold text-yellow-600"><?php echo htmlspecialchars($pendingRegistrations); ?></p>
+                        <h3 class="text-lg font-semibold text-yellow-800">Assigned Leads</h3>
+                        <p class="text-3xl font-bold text-yellow-600"><?php echo htmlspecialchars($assignedLeads); ?></p>
                     </div>
                     <div class="bg-gradient-to-br from-green-100 to-green-200 p-4 rounded-xl text-center shadow-lg hover:shadow-2xl transition-all duration-300">
-                        <h3 class="text-lg font-semibold text-green-800">Assigned Leads</h3>
-                        <p class="text-3xl font-bold text-green-600"><?php echo htmlspecialchars($assignedLeads); ?></p>
+                        <h3 class="text-lg font-semibold text-green-800">Non Assigned Leads</h3>
+                        <p class="text-3xl font-bold text-green-600"><?php echo htmlspecialchars($getNewLeads); ?></p>
                     </div>
+                    <div class="bg-gradient-to-br from-green-100 to-green-200 p-4 rounded-xl text-center shadow-lg hover:shadow-2xl transition-all duration-300">
+                        <h3 class="text-lg font-semibold text-green-800">Registered Leads</h3>
+                        <p class="text-3xl font-bold text-green-600"><?php echo htmlspecialchars($getRegisteredLeadsCount); ?></p>
+                    </div> 
+                    <div class="bg-gradient-to-br from-yellow-100 to-yellow-200 p-4 rounded-xl text-center shadow-lg hover:shadow-2xl transition-all duration-300">
+                        <h3 class="text-lg font-semibold text-yellow-800">Pending Registrations</h3>
+                        <p class="text-3xl font-bold text-yellow-600"><?php echo htmlspecialchars($getPendingRegistrationsCount); ?></p>
+                    </div> 
+                    <div class="bg-gradient-to-br from-blue-100 to-blue-200 p-4 rounded-xl text-center shadow-lg hover:shadow-2xl transition-all duration-300">
+                        <h3 class="text-lg font-semibold text-blue-800">Declined Leads</h3>
+                        <p class="text-3xl font-bold text-blue-600"><?php echo htmlspecialchars($getDeclinedLeadsCount); ?></p>
+                    </div>   
                 </div>
                 <div class="flex flex-wrap gap-4">
                     <a href="<?php echo BASE_PATH; ?>/views/admin/upload_leads.php" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">Upload Leads</a>
                     <a href="<?php echo BASE_PATH; ?>/views/admin/leads_list.php" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">View Leads</a>
-                    <a href="<?php echo BASE_PATH; ?>/views/admin/assigned_leads.php" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">Assign Leads</a>
+                    <a href="<?php echo BASE_PATH; ?>/views/admin/assigned_leads.php" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">View Assigned Leads</a>
+                    <a href="<?php echo BASE_PATH; ?>/views/admin/pending_registrations.php" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">View Pending Registrations</a>
+                    <a href="<?php echo BASE_PATH; ?>/views/admin/registered_leads.php" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">View Registered Leads</a>
+                    <a href="<?php echo BASE_PATH; ?>/views/admin/declined_leads.php" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">View Declined Leads</a>
                 </div>
             </div>
         </div>
