@@ -52,6 +52,7 @@ if (!$user) {
                 <a href="/std_mgmt/views/academic_user/dashboard.php">Dashboard</a>
                 <a href="/std_mgmt/views/academic_user/pending_registrations.php">Pending Registrations</a>
                 <a href="/std_mgmt/views/academic_user/registered_leads.php">Registered Leads</a>
+                <a href="/std_mgmt/views/academic_user/declined_leads.php">Declined Leads</a>
             <?php endif; ?>
             <a href="/std_mgmt/views/auth/logout.php">Logout</a>
         </nav>

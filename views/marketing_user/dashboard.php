@@ -6,8 +6,10 @@ if (!isset($pdo)) {
     die("Database connection error");
 }
 require_once __DIR__ . '/../../backend/controllers/AuthController.php';
+require_once __DIR__ . '/../../backend/controllers/LeadController.php'; // Added to fetch lead counts
 
 $authController = new AuthController($pdo);
+$leadController = new LeadController($pdo); // Ensure PDO is passed if required by constructor
 
 $user = $authController->getCurrentUser();
 if (!$user || $user['role'] !== 'marketing_user') {
@@ -17,8 +19,15 @@ if (!$user || $user['role'] !== 'marketing_user') {
 
 define('BASE_PATH', '/std_mgmt');
 $currentPage = basename($_SERVER['PHP_SELF']);
-?>
 
+$user_id = $user['id']; // Assuming user array has 'id' key matching assigned_user_id
+$getAssignedUserLeadsCount = $leadController->getAssignedUserLeadsCount($user_id); // Updated method name
+$getRegisteredUserLeadsCount = $leadController->getRegisteredUserLeadsCount($user_id); // Assuming this method still 
+$getPendingUserLeadsCount = $leadController->getPendingUserLeadsCount($user_id); // Assuming this method still 
+$getDeclinedUserLeadsCount = $leadController->getDeclinedUserLeadsCount($user_id); // Assuming this method still 
+
+error_log("Marketing user dashboard: user_id=$user_id, getAssignedUserLeadsCount=$getAssignedUserLeadsCount, getRegisteredUserLeadsCount=$getRegisteredUserLeadsCount, getPendingUserLeadsCount=$getPendingUserLeadsCount, getDeclinedUserLeadsCount=$getDeclinedUserLeadsCount at " . date('Y-m-d H:i:s'));
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -26,7 +35,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Marketing User Dashboard - Student Management System</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/std_mgmt/css/style.css?v=<?php echo time(); ?>">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .sidebar {
@@ -103,6 +111,33 @@ $currentPage = basename($_SERVER['PHP_SELF']);
             <div class="max-w-4xl mx-auto bg-white/80 backdrop-blur-md p-6 rounded-xl shadow-xl">
                 <h1 class="text-3xl font-bold mb-4 text-blue-900 text-shadow">Marketing User Dashboard</h1>
                 <p class="text-lg text-gray-700">Welcome to the marketing user dashboard. You can view your assigned leads and manage their details.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
+                    <div class="bg-blue-100 p-4 rounded-lg shadow">
+                        <h2 class="text-xl font-semibold text-blue-800">Assigned Leads</h2>
+                        <p class="text-3xl font-bold text-blue-600"><?php echo htmlspecialchars($getAssignedUserLeadsCount ?? 0); ?></p>
+                    </div>
+                    <div class="bg-yellow-100 p-4 rounded-lg shadow">
+                        <h2 class="text-xl font-semibold text-yellow-800">Registered Leads</h2>
+                        <p class="text-3xl font-bold text-yellow-600"><?php echo htmlspecialchars($getRegisteredUserLeadsCount ?? 0); ?></p>
+                    </div>
+                    <div class="bg-green-100 p-4 rounded-lg shadow">
+                        <h2 class="text-xl font-semibold text-green-800">Pending Registrations </h2>
+                        <p class="text-3xl font-bold text-green-600"><?php echo htmlspecialchars($getPendingUserLeadsCount ?? 0); ?></p>
+                    </div>
+                    <div class="bg-blue-100 p-4 rounded-lg shadow">
+                        <h2 class="text-xl font-semibold text-blue-800">Declined Registrations </h2>
+                        <p class="text-3xl font-bold text-blue-600"><?php echo htmlspecialchars($getDeclinedUserLeadsCount ?? 0); ?></p>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-4">
+                    <a href="<?php echo BASE_PATH; ?>/views/marketing_user/assigned_leads.php" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">View Assigned Leads</a>
+                    <a href="<?php echo BASE_PATH; ?>/views/marketing_user/pending_registrations.php" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">View Pending Registrations</a>
+                    <a href="<?php echo BASE_PATH; ?>/views/marketing_user/registered_leads.php" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">View Registered Leads</a>
+                    <a href="<?php echo BASE_PATH; ?>/views/marketing_user/declined_leads.php" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">View Declined Leads</a>
+                    
+                    
+                    
+                </div>
             </div>
         </div>
     </div>

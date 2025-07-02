@@ -2,14 +2,14 @@
 session_start();
 require_once __DIR__ . '/../../backend/config/db_connect.php';
 if (!isset($pdo)) {
-    error_log("PDO not defined in registered_leads.php at " . date('Y-m-d H:i:s'));
+    error_log("PDO not defined in academic_user/declined_leads.php at " . date('Y-m-d H:i:s'));
     die("Database connection error");
 }
 require_once __DIR__ . '/../../backend/controllers/AuthController.php';
 require_once __DIR__ . '/../../backend/controllers/RegistrationController.php';
 
-$registrationController = new RegistrationController($pdo);
 $authController = new AuthController($pdo);
+$registrationController = new RegistrationController($pdo);
 
 $user = $authController->getCurrentUser();
 if (!$user || $user['role'] !== 'academic_user') {
@@ -18,34 +18,22 @@ if (!$user || $user['role'] !== 'academic_user') {
 }
 
 $course = $_GET['course'] ?? '';
-$user_id = $_GET['user_id'] ?? '';
-$marketing_users = $authController->getUsersByRole('marketing_user');
 
-// Get distinct courses with registered leads
-$registered_leads = $registrationController->getRegisteredLeads();
-$course_list = array_unique(array_column($registered_leads, 'form_name'));
+$declined_leads = $registrationController->getDeclinedLeads($course ?: null);
+$course_list = array_unique(array_column($declined_leads, 'form_name'));
 
-// Debug: Log data to check if leads are fetched
-error_log("Course list: " . print_r($course_list, true) . " at " . date('Y-m-d H:i:s'));
-error_log("Registered leads (initial): " . print_r($registered_leads, true) . " at " . date('Y-m-d H:i:s'));
-
-if ($course) {
-    $registered_leads = $registrationController->getRegisteredLeads($user_id ?: null, $course);
-}
-error_log("Registered leads (filtered): " . print_r($registered_leads, true) . " at " . date('Y-m-d H:i:s'));
+error_log("Academic user declined leads: course=$course, count=" . count($declined_leads) . " at " . date('Y-m-d H:i:s'));
 
 define('BASE_PATH', '/std_mgmt');
 $currentPage = basename($_SERVER['PHP_SELF']);
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registered Leads - Student Management System</title>
+    <title>Declined Leads - Student Management System</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/std_mgmt/css/style.css?v=<?php echo time(); ?>">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         .sidebar {
@@ -150,90 +138,51 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 </svg>
             </button>
 
-            <!-- Registered Leads Content -->
+            <!-- Declined Leads Content -->
             <div class="max-w-4xl mx-auto bg-white/80 backdrop-blur-md p-6 rounded-xl shadow-xl">
-                <h1 class="text-3xl font-bold mb-4 text-blue-900 text-shadow">Registered Leads</h1>
-                <?php if (isset($_GET['success'])): ?>
-                    <div class="mb-4 p-4 bg-green-100 text-green-700 rounded-lg">
-                        <?php echo htmlspecialchars($_GET['success']); ?>
-                    </div>
-                <?php endif; ?>
-                <?php if (isset($_GET['error'])): ?>
-                    <div class="mb-4 p-4 bg-red-100 text-red-700 rounded-lg">
-                        <?php echo htmlspecialchars($_GET['error']); ?>
-                    </div>
-                <?php endif; ?>
-
-                <!-- Filter by Marketing User -->
-                <h2 class="text-xl font-semibold mb-4 text-blue-800">Filter by Marketing User</h2>
-                <form method="GET" action="/std_mgmt/views/academic_user/registered_leads.php" class="mb-6">
+                <h1 class="text-3xl font-bold mb-4 text-blue-900 text-shadow">Declined Leads</h1>
+                <!-- Filter Form -->
+                <form method="GET" action="/std_mgmt/views/academic_user/declined_leads.php" class="space-y-4 mb-6">
                     <div class="form-group">
-                        <label for="user_id" class="text-gray-700">Filter by Marketing User</label>
-                        <select name="user_id" id="user_id" class="w-full">
+                        <label for="course" class="block text-sm font-medium text-gray-700">Filter by Course</label>
+                        <select name="course" id="course" class="mt-1 focus:ring-blue-500 focus:border-blue-500">
                             <option value="">All</option>
-                            <?php foreach ($marketing_users as $user): ?>
-                                <option value="<?php echo htmlspecialchars((string)$user['id']); ?>" <?php echo $user_id == $user['id'] ? 'selected' : ''; ?>>
-                                    <?php echo htmlspecialchars($user['username']); ?>
+                            <?php foreach (array_unique(array_column($declined_leads, 'form_name')) as $course_name): ?>
+                                <option value="<?php echo htmlspecialchars($course_name); ?>" <?php echo $course === $course_name ? 'selected' : ''; ?>>
+                                    <?php echo htmlspecialchars($course_name); ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <?php if ($course): ?>
-                        <input type="hidden" name="course" value="<?php echo htmlspecialchars($course); ?>">
-                    <?php endif; ?>
-                    <button type="submit" class="mt-4 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">Apply Filter</button>
+                    <button type="submit" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">Apply Filter</button>
                 </form>
-
-                <?php if (empty($course_list)): ?>
-                    <div class="p-4 text-gray-600">No registered leads found.</div>
+                <?php if (empty($declined_leads)): ?>
+                    <div class="p-4 text-gray-600">No declined leads found.</div>
                 <?php else: ?>
-                    <h2 class="text-xl font-semibold mb-4 text-blue-800">Courses</h2>
                     <div class="overflow-x-auto">
                         <table class="table">
                             <thead>
                                 <tr>
+                                    <th>Lead ID</th>
                                     <th>Course Name</th>
-                                    <th>Registered Lead Count</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($course_list as $course_name): ?>
-                                    <tr>
-                                        <td><?php echo htmlspecialchars($course_name); ?></td>
-                                        <td><?php echo count($registrationController->getRegisteredLeads($user_id ?: null, $course_name)); ?></td>
-                                        <td class="action-cell">
-                                            <a href="?course=<?php echo urlencode($course_name); ?>&user_id=<?php echo urlencode($user_id); ?>" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">View Leads</a>
-                                        </td>
-                                    </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                <?php endif; ?>
-
-                <?php if ($course && !empty($registered_leads)): ?>
-                    <h2 class="text-xl font-semibold mt-8 mb-4 text-blue-800">Registered Leads for <?php echo htmlspecialchars($course); ?></h2>
-                    <div class="overflow-x-auto">
-                        <table class="table">
-                            <thead>
-                                <tr>
                                     <th>Full Name</th>
                                     <th>Email</th>
                                     <th>Phone</th>
                                     <th>Assigned To</th>
-                                    <th>Registration Status</th>
-                                    <th>Action</th>
+                                    <th>Status</th>
+                                    <th class="action-cell">Action</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($registered_leads as $lead): ?>
+                                <?php foreach ($declined_leads as $lead): ?>
                                     <tr>
-                                        <td><?php echo htmlspecialchars($lead['full_name']); ?></td>
-                                        <td><?php echo htmlspecialchars($lead['email']); ?></td>
-                                        <td><?php echo htmlspecialchars($lead['phone']); ?></td>
-                                        <td><?php echo htmlspecialchars($lead['username'] ?: 'N/A'); ?></td>
-                                        <td><?php echo htmlspecialchars($lead['status']); ?></td>
+                                        <td class="p-3"><?php echo htmlspecialchars($lead['lead_id'] ?? 'N/A'); ?></td>
+                                        <td class="p-3"><?php echo htmlspecialchars($lead['form_name'] ?? 'N/A'); ?></td>
+                                        <td class="p-3"><?php echo htmlspecialchars($lead['full_name'] ?? 'N/A'); ?></td>
+                                        <td class="p-3"><?php echo htmlspecialchars($lead['email'] ?? 'N/A'); ?></td>
+                                        <td class="p-3"><?php echo htmlspecialchars($lead['phone'] ?? 'N/A'); ?></td>
+                                        <td class="p-3"><?php echo htmlspecialchars($lead['username'] ?? 'N/A'); ?></td>
+                                        <td class="p-3"><?php echo htmlspecialchars($lead['status'] ?? 'N/A'); ?></td>
                                         <td class="action-cell">
                                             <a href="/std_mgmt/views/academic_user/lead_details.php?lead_id=<?php echo htmlspecialchars((string)$lead['lead_id']); ?>" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">View Details</a>
                                         </td>
@@ -243,6 +192,10 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         </table>
                     </div>
                 <?php endif; ?>
+
+                <div class="mt-6">
+                    <a href="<?php echo BASE_PATH; ?>/views/academic_user/dashboard.php" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">Back to Dashboard</a>
+                </div>
             </div>
         </div>
     </div>
@@ -272,3 +225,4 @@ $currentPage = basename($_SERVER['PHP_SELF']);
     </script>
 </body>
 </html>
+<?php include __DIR__ . '/../layouts/footer.php'; ?>

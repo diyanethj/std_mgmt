@@ -67,7 +67,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     </li>
                     <li>
                         <a href="<?php echo BASE_PATH; ?>/views/finance_user/registered_leads.php" class="block p-2 rounded hover:bg-red-700/30 <?php echo $currentPage === 'registered_leads.php' ? 'bg-red-700/50' : ''; ?>">
-                            Registered Leads
+                            Registered Students
                         </a>
                     </li>
                     <li>
@@ -94,13 +94,13 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 <p class="mb-6 text-gray-700 text-lg">View registered leads from this dashboard.</p>
                 <div class="grid grid-cols-1 sm:grid-cols-1 gap-6 mb-6">
                     <div class="bg-gradient-to-br from-green-100 to-green-200 p-4 rounded-xl text-center shadow-lg hover:shadow-2xl transition-all duration-300">
-                        <h3 class="text-lg font-semibold text-green-800">Registered Leads</h3>
+                        <h3 class="text-lg font-semibold text-green-800">Registered Students</h3>
                         <p class="text-3xl font-bold text-green-600"><?php echo htmlspecialchars($getRegisteredLeadsCount); ?></p>
                     </div>   
                 </div>
                 <div class="flex flex-wrap gap-4">
                     <a href="<?php echo BASE_PATH; ?>/views/finance_user/registered_leads.php" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">
-                        View Registered Leads
+                        View Registered Students
                     </a>
                 </div>
             </div>

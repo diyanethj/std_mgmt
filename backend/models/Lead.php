@@ -120,7 +120,7 @@ class Lead {
 
     public function getAssignedLeadsCount()
     {
-        $stmt = $this->pdo->query('SELECT COUNT(*) as total FROM leads where status="assigned" OR status="declined" OR status= "pending_registration"');
+        $stmt = $this->pdo->query('SELECT COUNT(*) as total FROM leads where status="assigned" OR status="registered" OR status="declined" OR status= "pending_registration"');
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return (int) $result['total'];
     }
@@ -151,5 +151,29 @@ class Lead {
         $stmt = $this->pdo->query('SELECT COUNT(*) as total FROM registrations where status= "declined"');
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         return (int) $result['total'];
+    }
+
+    public function getAssignedUserLeadsCount($user_id) {
+        $stmt = $this->pdo->prepare("SELECT COUNT(*) FROM leads WHERE assigned_user_id = ?");
+        $stmt->execute([$user_id]);
+        return $stmt->fetchColumn();
+    }
+
+    public function getRegisteredUserLeadsCount($user_id) {
+        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM leads WHERE status = "registered" AND assigned_user_id = ? ');
+        $stmt->execute([$user_id]);
+        return $stmt->fetchColumn();
+    }
+
+    public function getPendingUserLeadsCount($user_id) {
+        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM leads WHERE status = "pending_registration" AND assigned_user_id = ? ');
+        $stmt->execute([$user_id]);
+        return $stmt->fetchColumn();
+    }
+
+    public function getDeclinedUserLeadsCount($user_id) {
+        $stmt = $this->pdo->prepare('SELECT COUNT(*) FROM leads WHERE status = "declined" AND assigned_user_id = ? ');
+        $stmt->execute([$user_id]);
+        return $stmt->fetchColumn();
     }
 }

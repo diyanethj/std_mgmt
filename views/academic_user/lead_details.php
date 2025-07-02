@@ -124,6 +124,11 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         </a>
                     </li>
                     <li>
+                        <a href="<?php echo BASE_PATH; ?>/views/academic_user/declined_leads.php" class="block p-2 rounded hover:bg-red-700/30 <?php echo $currentPage === 'registered_leads.php' ? 'bg-red-700/50' : ''; ?>">
+                            Declined Leads
+                        </a>
+                    </li>
+                    <li>
                         <a href="<?php echo BASE_PATH; ?>/views/auth/logout.php" class="block p-2 rounded hover:bg-yellow-600/50 text-yellow-300">
                             Logout
                         </a>

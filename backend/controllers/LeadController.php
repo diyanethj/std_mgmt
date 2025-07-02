@@ -113,4 +113,21 @@ class LeadController {
     {
         return $this->leadModel->getDeclinedLeadsCount();
     }
+
+    public function getAssignedUserLeadsCount($user_id) {
+        return $this->leadModel->getAssignedUserLeadsCount($user_id);
+    }
+
+    public function getRegisteredUserLeadsCount($user_id) {
+        return $this->leadModel->getRegisteredUserLeadsCount($user_id);
+    }
+
+    public function getPendingUserLeadsCount($user_id) {
+        return $this->leadModel->getPendingUserLeadsCount($user_id);
+    }
+
+    public function getDeclinedUserLeadsCount($user_id) {
+        return $this->leadModel->getDeclinedUserLeadsCount($user_id);
+    }
+
 }
