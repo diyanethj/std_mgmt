@@ -92,7 +92,7 @@ if (isset($error)) {
             </div>
         </div>
         <script>
-            document.addEventListener('DOMContentLoaded', () => {
+            window.onload = () => {
                 const openSidebar = document.getElementById('openSidebar');
                 const closeSidebar = document.getElementById('closeSidebar');
                 const sidebar = document.getElementById('sidebar');
@@ -110,7 +110,7 @@ if (isset($error)) {
                     sidebar.classList.remove('open');
                     sidebar.classList.add('translate-x-[-100%]');
                 });
-            });
+            };
         </script>
     </body>
     </html>
@@ -158,20 +158,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user['role'] === 'marketing_user')
         } else {
             $error = 'All follow-up fields are required';
         }
-    } elseif (isset($_POST['update_followup'])) {
-        $followup_id = (int)$_POST['followup_id'];
-        $number = (int)($_POST['number'] ?? 0);
-        $followup_date = $_POST['followup_date'] ?? '';
-        $comment = trim($_POST['comment'] ?? '');
-        if ($number > 0 && $followup_date && $comment) {
-            if ($followupController->updateFollowup($followup_id, $lead_id, $number, $followup_date, $comment)) {
-                header('Location: /std_mgmt/views/marketing_user/lead_details.php?lead_id=' . $lead_id . '&success=Follow-up updated successfully');
-                exit;
-            } else {
-                $error = 'Failed to update follow-up';
+    } elseif (isset($_POST['update_followups'])) {
+        $followupUpdates = [];
+        if (isset($_POST['followup_id']) && is_array($_POST['followup_id'])) {
+            foreach ($_POST['followup_id'] as $index => $followup_id) {
+                $number = (int)($_POST['number'][$index] ?? 0);
+                $followup_date = $_POST['followup_date'][$index] ?? '';
+                $comment = trim($_POST['comment'][$index] ?? '');
+                if ($number > 0 && $followup_date && $comment) {
+                    $followupUpdates[$followup_id] = ['number' => $number, 'followup_date' => $followup_date, 'comment' => $comment];
+                }
             }
+        }
+        $success = false;
+        if (!empty($followupUpdates)) {
+            if (method_exists($followupController, 'updateMultipleFollowups')) {
+                $success = $followupController->updateMultipleFollowups($lead_id, $followupUpdates);
+            } else {
+                // Fallback to individual updates using updateFollowup
+                foreach ($followupUpdates as $followup_id => $data) {
+                    $success = $followupController->updateFollowup($followup_id, $lead_id, $data['number'], $data['followup_date'], $data['comment']);
+                    if (!$success) break;
+                }
+            }
+        }
+        if ($success) {
+            header('Location: /std_mgmt/views/marketing_user/lead_details.php?lead_id=' . $lead_id . '&success=Follow-ups updated successfully');
+            exit;
         } else {
-            $error = 'All follow-up fields are required';
+            $error = 'Failed to update follow-ups or no valid updates provided';
         }
     } elseif (isset($_POST['delete_document'])) {
         $document_id = (int)$_POST['document_id'];
@@ -271,30 +286,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         .form-group textarea {
             resize: vertical;
             min-height: 100px;
-        }
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        .modal.open {
-            display: flex;
-        }
-        .modal-content {
-            background: white;
-            backdrop-filter: blur(10px);
-            border-radius: 12px;
-            padding: 24px;
-            width: 100%;
-            max-width: 500px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
         }
     </style>
 </head>
@@ -460,44 +451,51 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     <div class="p-4 text-gray-600">No follow-ups added.</div>
                 <?php else: ?>
                     <div class="overflow-x-auto" id="followup-table">
-                        <table class="table">
-                            <thead>
-                                <tr>
-                                    <th>Number</th>
-                                    <th>Date</th>
-                                    <th>Comment</th>
-                                    <th>Created At</th>
-                                    <?php if ($user['role'] === 'marketing_user'): ?>
-                                        <th>Actions</th>
-                                    <?php endif; ?>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($followups as $followup): ?>
+                        <form method="POST" action="/std_mgmt/views/marketing_user/lead_details.php?lead_id=<?php echo htmlspecialchars((string)$lead_id); ?>">
+                            <table class="table">
+                                <thead>
                                     <tr>
-                                        <td><?php echo htmlspecialchars($followup['number']); ?></td>
-                                        <td><?php echo htmlspecialchars($followup['followup_date']); ?></td>
-                                        <td><?php echo htmlspecialchars($followup['comment']); ?></td>
-                                        <td><?php echo htmlspecialchars($followup['created_at']); ?></td>
+                                        <th>Number</th>
+                                        <th>Date</th>
+                                        <th>Comment</th>
+                                        <th>Created At</th>
                                         <?php if ($user['role'] === 'marketing_user'): ?>
-                                            <td class="action-cell">
-                                                <button class="edit-followup-btn px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300" 
-                                                        data-id="<?php echo htmlspecialchars((string)$followup['id']); ?>" 
-                                                        data-number="<?php echo htmlspecialchars($followup['number']); ?>" 
-                                                        data-date="<?php echo htmlspecialchars($followup['followup_date']); ?>" 
-                                                        data-comment="<?php echo htmlspecialchars($followup['comment']); ?>" 
-                                                        onclick="editFollowup('<?php echo htmlspecialchars((string)$followup['id']); ?>', '<?php echo htmlspecialchars($followup['number']); ?>', '<?php echo htmlspecialchars($followup['followup_date']); ?>', '<?php echo htmlspecialchars($followup['comment']); ?>')">Edit</button>
-                                                <form method="POST" action="/std_mgmt/views/marketing_user/lead_details.php?lead_id=<?php echo htmlspecialchars((string)$lead_id); ?>" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this follow-up?');">
-                                                    <input type="hidden" name="delete_followup" value="1">
-                                                    <input type="hidden" name="followup_id" value="<?php echo htmlspecialchars((string)$followup['id']); ?>">
-                                                    <button type="submit" class="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 shadow-md hover:shadow-lg transition-all duration-300">Delete</button>
-                                                </form>
-                                            </td>
+                                            <th>Action</th>
                                         <?php endif; ?>
                                     </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($followups as $index => $followup): ?>
+                                        <tr>
+                                            <td>
+                                                <input type="number" name="number[<?php echo $index; ?>]" value="<?php echo htmlspecialchars($followup['number']); ?>" min="1" required class="w-full">
+                                            </td>
+                                            <td>
+                                                <input type="date" name="followup_date[<?php echo $index; ?>]" value="<?php echo htmlspecialchars($followup['followup_date']); ?>" required class="w-full">
+                                            </td>
+                                            <td>
+                                                <textarea name="comment[<?php echo $index; ?>]" required class="w-full"><?php echo htmlspecialchars($followup['comment']); ?></textarea>
+                                            </td>
+                                            <td><?php echo htmlspecialchars($followup['created_at']); ?></td>
+                                            <?php if ($user['role'] === 'marketing_user'): ?>
+                                                <td class="action-cell">
+                                                    <form method="POST" action="/std_mgmt/views/marketing_user/lead_details.php?lead_id=<?php echo htmlspecialchars((string)$lead_id); ?>" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this follow-up?');">
+                                                        <input type="hidden" name="delete_followup" value="1">
+                                                        <input type="hidden" name="followup_id" value="<?php echo htmlspecialchars((string)$followup['id']); ?>">
+                                                        <button type="submit" class="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 shadow-md hover:shadow-lg transition-all duration-300">Delete</button>
+                                                    </form>
+                                                </td>
+                                            <?php endif; ?>
+                                        </tr>
+                                        <input type="hidden" name="followup_id[<?php echo $index; ?>]" value="<?php echo htmlspecialchars((string)$followup['id']); ?>">
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                            <?php if ($user['role'] === 'marketing_user'): ?>
+                                <input type="hidden" name="update_followups" value="1">
+                                <button type="submit" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300 mt-4">Update Details</button>
+                            <?php endif; ?>
+                        </form>
                     </div>
                 <?php endif; ?>
 
@@ -505,45 +503,25 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     <a href="/std_mgmt/views/<?php echo $user['role']; ?>/pending_registrations.php?course=<?php echo urlencode($lead['form_name']); ?>" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">Back to Pending Registrations</a>
                 </div>
             </div>
-
-            <?php if ($user['role'] === 'marketing_user'): ?>
-                <div id="editFollowupModal" class="modal">
-                    <div class="modal-content">
-                        <h2 class="text-xl font-semibold mb-4 text-blue-800">Edit Follow-up</h2>
-                        <form method="POST" action="/std_mgmt/views/marketing_user/lead_details.php?lead_id=<?php echo htmlspecialchars((string)$lead_id); ?>" class="bg-gray-50 p-6 rounded-lg shadow-sm">
-                            <input type="hidden" name="update_followup" value="1">
-                            <input type="hidden" name="followup_id" id="edit_followup_id">
-                            <div class="form-group">
-                                <label>Follow-up Number</label>
-                                <input type="number" name="number" id="edit_number" min="1" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Follow-up Date</label>
-                                <input type="date" name="followup_date" id="edit_followup_date" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Comment</label>
-                                <textarea name="comment" id="edit_comment" class="form-control" required></textarea>
-                            </div>
-                            <div class="flex space-x-4">
-                                <button type="submit" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">Update Follow-up</button>
-                                <button type="button" class="px-6 py-3 bg-gradient-to-r from-gray-500 to-gray-600 text-white rounded-lg hover:from-gray-600 hover:to-gray-700 shadow-md hover:shadow-lg transition-all duration-300" id="closeModalBtn">Cancel</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            <?php endif; ?>
         </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
+        window.onload = () => {
+            console.log('Page fully loaded');
+
             const openSidebar = document.getElementById('openSidebar');
             const closeSidebar = document.getElementById('closeSidebar');
             const sidebar = document.getElementById('sidebar');
-            const modal = document.getElementById('editFollowupModal');
-            const closeModalBtn = document.getElementById('closeModalBtn');
-            const followupTable = document.getElementById('followup-table');
+
+            if (!openSidebar || !closeSidebar || !sidebar) {
+                console.error('Missing elements:', {
+                    openSidebar: !!openSidebar,
+                    closeSidebar: !!closeSidebar,
+                    sidebar: !!sidebar
+                });
+                return;
+            }
 
             // Sidebar toggle
             if (window.innerWidth < 768px) {
@@ -560,77 +538,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 sidebar.classList.remove('open');
                 sidebar.classList.add('translate-x-[-100%]');
             });
-
-            // Modal handling
-            const editFollowup = (id, number, date, comment) => {
-                try {
-                    console.log('Opening modal for follow-up:', { id, number, date, comment });
-                    if (!id || !number || !date || !comment) {
-                        console.error('Invalid follow-up data');
-                        return;
-                    }
-                    const modalInputs = {
-                        id: document.getElementById('edit_followup_id'),
-                        number: document.getElementById('edit_number'),
-                        date: document.getElementById('edit_followup_date'),
-                        comment: document.getElementById('edit_comment')
-                    };
-                    if (!modalInputs.id || !modalInputs.number || !modalInputs.date || !modalInputs.comment) {
-                        console.error('Modal input elements not found');
-                        return;
-                    }
-                    modalInputs.id.value = id;
-                    modalInputs.number.value = number;
-                    modalInputs.date.value = date;
-                    modalInputs.comment.value = comment;
-                    modal.classList.add('open');
-                    console.log('Modal opened successfully');
-                } catch (error) {
-                    console.error('Error in editFollowup:', error);
-                }
-            };
-
-            const closeModal = () => {
-                try {
-                    console.log('Closing modal');
-                    modal.classList.remove('open');
-                } catch (error) {
-                    console.error('Error closing modal:', error);
-                }
-            };
-
-            // Event delegation for edit buttons
-            if (followupTable) {
-                followupTable.addEventListener('click', (event) => {
-                    const btn = event.target.closest('.edit-followup-btn');
-                    if (btn) {
-                        console.log('Edit button clicked via delegation');
-                        const id = btn.dataset.id;
-                        const number = btn.dataset.number;
-                        const date = btn.dataset.date;
-                        const comment = btn.dataset.comment;
-                        editFollowup(id, number, date, comment);
-                    }
-                });
-            } else {
-                console.error('Follow-up table not found');
-            }
-
-            // Close modal button
-            if (closeModalBtn) {
-                closeModalBtn.addEventListener('click', closeModal);
-            } else {
-                console.error('Close modal button not found');
-            }
-
-            // Debug button presence
-            const editButtons = document.querySelectorAll('.edit-followup-btn');
-            console.log('Found', editButtons.length, 'edit buttons');
-
-            // Expose functions globally for inline onclick
-            window.editFollowup = editFollowup;
-            window.closeModal = closeModal;
-        });
+        };
     </script>
 </body>
 </html>
