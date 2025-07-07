@@ -80,8 +80,8 @@ class LeadController {
         return $this->leadModel->updateStatus($lead_id, 'pending_registration');
     }
 
-    public function updateLeadDetails($lead_id, $permanent_address, $work_experience) {
-        return $this->leadModel->updateLeadDetails($lead_id, $permanent_address, $work_experience);
+    public function updateLeadDetails($lead_id, $permanent_address, $work_experience, $date_of_birth, $nic_number) {
+        return $this->leadModel->updateLeadDetails($lead_id, $permanent_address, $work_experience, $date_of_birth, $nic_number);
     }
 
     public function getTotalLeads()

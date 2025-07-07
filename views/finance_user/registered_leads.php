@@ -182,7 +182,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 <?php endif; ?>
 
                 <!-- Filter by Marketing User -->
-                <h2 class="text-xl font-semibold mb-4 text-blue-800">Filter by Marketing User</h2>
                 <form method="GET" action="/std_mgmt/views/finance_user/registered_leads.php" class="mb-6">
                     <div class="form-group">
                         <label for="user_id" class="text-lg font-semibold text-blue-900">Filter by Marketing User</label>

@@ -106,9 +106,9 @@ class Lead {
         return $stmt->execute([$status, $lead_id]);
     }
 
-    public function updateLeadDetails($lead_id, $permanent_address, $work_experience) {
-        $stmt = $this->pdo->prepare("UPDATE leads SET permanent_address = ?, work_experience = ? WHERE id = ?");
-        return $stmt->execute([$permanent_address, $work_experience, $lead_id]);
+    public function updateLeadDetails($lead_id, $permanent_address, $work_experience, $date_of_birth, $nic_number) {
+        $stmt = $this->pdo->prepare("UPDATE leads SET permanent_address = ?, work_experience = ?, date_of_birth = ?, nic_number = ? WHERE id = ?");
+        return $stmt->execute([$permanent_address, $work_experience, $date_of_birth, $nic_number, $lead_id]);
     }
 
     public function getTotalLeads()

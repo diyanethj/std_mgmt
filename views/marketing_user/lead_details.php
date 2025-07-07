@@ -9,11 +9,13 @@ require_once __DIR__ . '/../../backend/controllers/LeadController.php';
 require_once __DIR__ . '/../../backend/controllers/DocumentController.php';
 require_once __DIR__ . '/../../backend/controllers/FollowupController.php';
 require_once __DIR__ . '/../../backend/controllers/AuthController.php';
+require_once __DIR__ . '/../../backend/controllers/PaymentController.php';
 
 $leadController = new LeadController($pdo);
 $documentController = new DocumentController($pdo);
 $followupController = new FollowupController($pdo);
 $authController = new AuthController($pdo);
+$paymentController = new PaymentController($pdo);
 
 $user = $authController->getCurrentUser();
 if (!$user || $user['role'] !== 'marketing_user') {
@@ -122,7 +124,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user['role'] === 'marketing_user')
     if (isset($_POST['update_details'])) {
         $permanent_address = trim($_POST['permanent_address'] ?? '');
         $work_experience = trim($_POST['work_experience'] ?? '');
-        if ($leadController->updateLeadDetails($lead_id, $permanent_address, $work_experience)) {
+        $date_of_birth = trim($_POST['date_of_birth'] ?? ''); // Added
+        $nic_number = trim($_POST['nic_number'] ?? ''); // Added
+        if ($leadController->updateLeadDetails($lead_id, $permanent_address, $work_experience, $date_of_birth, $nic_number)) { // Updated to include new fields
             header('Location: /std_mgmt/views/marketing_user/lead_details.php?lead_id=' . $lead_id . '&success=Details updated successfully');
             exit;
         } else {
@@ -175,7 +179,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user['role'] === 'marketing_user')
             if (method_exists($followupController, 'updateMultipleFollowups')) {
                 $success = $followupController->updateMultipleFollowups($lead_id, $followupUpdates);
             } else {
-                // Fallback to individual updates using updateFollowup
                 foreach ($followupUpdates as $followup_id => $data) {
                     $success = $followupController->updateFollowup($followup_id, $lead_id, $data['number'], $data['followup_date'], $data['comment']);
                     if (!$success) break;
@@ -187,6 +190,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user['role'] === 'marketing_user')
             exit;
         } else {
             $error = 'Failed to update follow-ups or no valid updates provided';
+        }
+    } elseif (isset($_POST['add_payment'])) {
+        $amount = (float)($_POST['amount'] ?? 0);
+        $payment_name = trim($_POST['payment_name'] ?? ''); // Added payment name
+        if (isset($_FILES['receipt']) && $_FILES['receipt']['error'] === UPLOAD_ERR_OK && $amount > 0) {
+            if ($paymentController->addPayment($lead_id, $amount, $payment_name, $_FILES['receipt'])) { // Updated to include payment_name
+                header('Location: /std_mgmt/views/marketing_user/lead_details.php?lead_id=' . $lead_id . '&success=Payment added successfully');
+                exit;
+            } else {
+                $error = 'Failed to add payment';
+            }
+        } else {
+            $error = 'Invalid payment amount or receipt file';
         }
     } elseif (isset($_POST['delete_document'])) {
         $document_id = (int)$_POST['document_id'];
@@ -204,13 +220,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user['role'] === 'marketing_user')
         } else {
             $error = 'Failed to delete follow-up';
         }
+    } elseif (isset($_POST['delete_payment'])) {
+        $payment_id = (int)$_POST['payment_id'];
+        if ($paymentController->deletePayment($payment_id, $lead_id)) {
+            header('Location: /std_mgmt/views/marketing_user/lead_details.php?lead_id=' . $lead_id . '&success=Payment deleted successfully');
+            exit;
+        } else {
+            $error = 'Failed to delete payment';
+        }
     }
 }
 
 $documents = $documentController->getDocumentsByLead($lead_id);
 $followups = $followupController->getFollowupsByLead($lead_id);
+$payments = $paymentController->getPaymentsByLead($lead_id);
 error_log("Documents: " . print_r($documents, true) . " at " . date('Y-m-d H:i:s'));
 error_log("Follow-ups: " . print_r($followups, true) . " at " . date('Y-m-d H:i:s'));
+error_log("Payments: " . print_r($payments, true) . " at " . date('Y-m-d H:i:s'));
 
 define('BASE_PATH', '/std_mgmt');
 $currentPage = basename($_SERVER['PHP_SELF']);
@@ -340,6 +366,8 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             <tr><th>Full Name</th><td><?php echo htmlspecialchars($lead['full_name']); ?></td></tr>
                             <tr><th>Email</th><td><?php echo htmlspecialchars($lead['email']); ?></td></tr>
                             <tr><th>Phone</th><td><?php echo htmlspecialchars($lead['phone']); ?></td></tr>
+                            <tr><th>Date of Birth</th><td><?php echo htmlspecialchars($lead['date_of_birth'] ?: 'N/A'); ?></td></tr>
+                            <tr><th>NIC Number</th><td><?php echo htmlspecialchars($lead['nic_number'] ?: 'N/A'); ?></td></tr>
                             <tr><th>Permanent Address</th><td><?php echo htmlspecialchars($lead['permanent_address'] ?: 'N/A'); ?></td></tr>
                             <tr><th>Work Experience</th><td><?php echo htmlspecialchars($lead['work_experience'] ?: 'N/A'); ?></td></tr>
                             <tr><th>Status</th><td><?php echo htmlspecialchars($lead['status']); ?></td></tr>
@@ -352,6 +380,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     <h2 class="text-xl font-semibold mt-8 mb-4 text-blue-800">Update Address and Work Experience</h2>
                     <form method="POST" action="/std_mgmt/views/marketing_user/lead_details.php?lead_id=<?php echo htmlspecialchars((string)$lead_id); ?>" class="bg-gray-50 p-6 rounded-lg shadow-sm">
                         <input type="hidden" name="update_details" value="1">
+                        <div class="form-group">
+                            <label>Date of Birth</label>
+                            <input type="date" name="date_of_birth" value="<?php echo htmlspecialchars($lead['date_of_birth'] ?: ''); ?>">
+                        </div>
+                        <div class="form-group">
+                            <label>NIC Number</label>
+                            <input type="text" name="nic_number" value="<?php echo htmlspecialchars($lead['nic_number'] ?: ''); ?>" placeholder="Enter NIC number">
+                        </div>
                         <div class="form-group">
                             <label>Permanent Address</label>
                             <textarea name="permanent_address" class="form-control"><?php echo htmlspecialchars($lead['permanent_address'] ?: ''); ?></textarea>
@@ -399,6 +435,24 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         </div>
                         <button type="submit" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">Add Follow-up</button>
                     </form>
+
+                    <h2 class="text-xl font-semibold mt-8 mb-4 text-blue-800">Registration Payment</h2>
+                    <form method="POST" action="/std_mgmt/views/marketing_user/lead_details.php?lead_id=<?php echo htmlspecialchars((string)$lead_id); ?>" enctype="multipart/form-data" class="bg-gray-50 p-6 rounded-lg shadow-sm">
+                        <input type="hidden" name="add_payment" value="1">
+                        <div class="form-group">
+                            <label>Payment Name</label>
+                            <input type="text" name="payment_name" required placeholder="e.g., First Installment">
+                        </div>
+                        <div class="form-group">
+                            <label>Payment Amount (INR)</label>
+                            <input type="number" name="amount" min="0" step="0.01" required placeholder="Enter amount">
+                        </div>
+                        <div class="form-group">
+                            <label>Receipt</label>
+                            <input type="file" name="receipt" required>
+                        </div>
+                        <button type="submit" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">Add Payment</button>
+                    </form>
                 <?php endif; ?>
 
                 <h2 class="text-xl font-semibold mt-8 mb-4 text-blue-800">Documents</h2>
@@ -435,6 +489,46 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                                 <form method="POST" action="/std_mgmt/views/marketing_user/lead_details.php?lead_id=<?php echo htmlspecialchars((string)$lead_id); ?>" onsubmit="return confirm('Are you sure you want to delete this document?');">
                                                     <input type="hidden" name="delete_document" value="1">
                                                     <input type="hidden" name="document_id" value="<?php echo htmlspecialchars((string)$doc['id']); ?>">
+                                                    <button type="submit" class="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 shadow-md hover:shadow-lg transition-all duration-300">Delete</button>
+                                                </form>
+                                            </td>
+                                        <?php endif; ?>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                <?php endif; ?>
+
+                <h2 class="text-xl font-semibold mt-8 mb-4 text-blue-800">Payments</h2>
+                <?php if (empty($payments)): ?>
+                    <div class="p-4 text-gray-600">No payments recorded.</div>
+                <?php else: ?>
+                    <div class="overflow-x-auto">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Payment Name</th>
+                                    <th>Amount (INR)</th>
+                                    <th>Receipt</th>
+                                    <th>Paid At</th>
+                                    <?php if ($user['role'] === 'marketing_user'): ?>
+                                        <th>Action</th>
+                                    <?php endif; ?>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($payments as $payment): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($payment['payment_name'] ?? 'N/A'); ?></td>
+                                        <td><?php echo htmlspecialchars(number_format($payment['amount'], 2)); ?></td>
+                                        <td><a href="/std_mgmt/uploads/payments/<?php echo htmlspecialchars(basename($payment['receipt_path'])); ?>" target="_blank" class="text-blue-600 hover:underline">View</a></td>
+                                        <td><?php echo htmlspecialchars($payment['created_at']); ?></td>
+                                        <?php if ($user['role'] === 'marketing_user'): ?>
+                                            <td class="action-cell">
+                                                <form method="POST" action="/std_mgmt/views/marketing_user/lead_details.php?lead_id=<?php echo htmlspecialchars((string)$lead_id); ?>" onsubmit="return confirm('Are you sure you want to delete this payment?');">
+                                                    <input type="hidden" name="delete_payment" value="1">
+                                                    <input type="hidden" name="payment_id" value="<?php echo htmlspecialchars((string)$payment['id']); ?>">
                                                     <button type="submit" class="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 shadow-md hover:shadow-lg transition-all duration-300">Delete</button>
                                                 </form>
                                             </td>

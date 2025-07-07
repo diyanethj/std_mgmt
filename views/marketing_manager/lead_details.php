@@ -9,11 +9,13 @@ require_once __DIR__ . '/../../backend/controllers/AuthController.php';
 require_once __DIR__ . '/../../backend/controllers/LeadController.php';
 require_once __DIR__ . '/../../backend/controllers/DocumentController.php';
 require_once __DIR__ . '/../../backend/controllers/FollowupController.php';
+require_once __DIR__ . '/../../backend/controllers/PaymentController.php'; // Added for payment details
 
 $authController = new AuthController($pdo);
 $leadController = new LeadController($pdo);
 $documentController = new DocumentController($pdo);
 $followupController = new FollowupController($pdo);
+$paymentController = new PaymentController($pdo); // Added PaymentController
 
 $user = $authController->getCurrentUser();
 if (!$user || $user['role'] !== 'marketing_manager') {
@@ -34,6 +36,7 @@ if (!isset($_GET['lead_id']) || !is_numeric($_GET['lead_id'])) {
 
 $documents = isset($lead_id) ? $documentController->getDocumentsByLead($lead_id) : [];
 $followups = isset($lead_id) ? $followupController->getFollowupsByLead($lead_id) : [];
+$payments = isset($lead_id) ? $paymentController->getPaymentsByLead($lead_id) : []; // Added to fetch payments
 
 $course = $_GET['course'] ?? null;
 define('BASE_PATH', '/std_mgmt');
@@ -162,6 +165,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                     <td class="p-3"><?php echo htmlspecialchars($lead['phone'] ?? 'N/A'); ?></td>
                                 </tr>
                                 <tr class="border-b">
+                                    <th class="p-3 text-left text-sm font-medium text-gray-700">Date of Birth</th>
+                                    <td class="p-3"><?php echo htmlspecialchars($lead['date_of_birth'] ?? 'N/A'); ?></td>
+                                </tr>
+                                <tr class="border-b">
+                                    <th class="p-3 text-left text-sm font-medium text-gray-700">NIC</th>
+                                    <td class="p-3"><?php echo htmlspecialchars($lead['nic_number'] ?? 'N/A'); ?></td>
+                                </tr>
+                                <tr class="border-b">
                                     <th class="p-3 text-left text-sm font-medium text-gray-700">Permanent Address</th>
                                     <td class="p-3"><?php echo htmlspecialchars($lead['permanent_address'] ?? 'N/A'); ?></td>
                                 </tr>
@@ -244,30 +255,61 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                             <td class="p-3"><?php echo htmlspecialchars($followup['created_at'] ?? 'N/A'); ?></td>
                                         </tr>
                                     <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                        <?php endif; ?>
-
-                        <div class="mt-6">
-                            <a href="/std_mgmt/views/marketing_manager/registered_leads.php?course=<?php echo urlencode($course ?? ''); ?>" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Back</a>
+                                </tbody>
+                            </table>
                         </div>
                     <?php endif; ?>
-                </div>
+
+                    <h2 class="text-xl font-semibold mt-8 mb-4">Payments</h2>
+                    <?php if (empty($payments)): ?>
+                        <p class="p-4 text-gray-600">No payments recorded.</p>
+                    <?php else: ?>
+                        <div class="table-container">
+                            <table class="w-full border-collapse bg-white">
+                                <thead>
+                                    <tr class="bg-gray-100">
+                                        <th class="p-3 text-left text-sm font-medium text-gray-700">Payment Name</th>
+                                        <th class="p-3 text-left text-sm font-medium text-gray-700">Amount (INR)</th>
+                                        <th class="p-3 text-left text-sm font-medium text-gray-700">Receipt</th>
+                                        <th class="p-3 text-left text-sm font-medium text-gray-700">Paid At</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($payments as $payment): ?>
+                                        <tr class="border-b">
+                                            <td class="p-3"><?php echo htmlspecialchars($payment['payment_name'] ?? 'N/A'); ?></td>
+                                            <td class="p-3"><?php echo htmlspecialchars(number_format($payment['amount'], 2)); ?></td>
+                                            <td class="p-3">
+                                                <a href="/std_mgmt/uploads/payments/<?php echo htmlspecialchars(basename($payment['receipt_path'])); ?>" target="_blank" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">View</a>
+                                            </td>
+                                            <td class="p-3"><?php echo htmlspecialchars($payment['created_at'] ?? 'N/A'); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="mt-6">
+                        <a href="/std_mgmt/views/marketing_manager/registered_leads.php?course=<?php echo urlencode($course ?? ''); ?>" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Back</a>
+                    </div>
+                <?php endif; ?>
             </div>
+        </div>
+    </div>
 
-            <script>
-                const openSidebar = document.getElementById('openSidebar');
-                const closeSidebar = document.getElementById('closeSidebar');
-                const sidebar = document.querySelector('.sidebar');
+    <script>
+        const openSidebar = document.getElementById('openSidebar');
+        const closeSidebar = document.getElementById('closeSidebar');
+        const sidebar = document.querySelector('.sidebar');
 
-                openSidebar.addEventListener('click', () => {
-                    sidebar.classList.add('open');
-                });
+        openSidebar.addEventListener('click', () => {
+            sidebar.classList.add('open');
+        });
 
-                closeSidebar.addEventListener('click', () => {
-                    sidebar.classList.remove('open');
-                });
-            </script>
-        </body>
+        closeSidebar.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+        });
+    </script>
+</body>
 </html>

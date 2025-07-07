@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Jun 26, 2025 at 12:53 PM
+-- Generation Time: Jul 07, 2025 at 07:12 AM
 -- Server version: 8.2.0
 -- PHP Version: 8.2.13
 
@@ -36,16 +36,7 @@ CREATE TABLE IF NOT EXISTS `documents` (
   `uploaded_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `lead_id` (`lead_id`)
-) ENGINE=MyISAM AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Dumping data for table `documents`
---
-
-INSERT INTO `documents` (`id`, `lead_id`, `document_type`, `file_path`, `uploaded_at`) VALUES
-(8, 648, 'nic', 'C:/wamp64/www/std_mgmt/uploads/documents/685d40a3bc507_685d20140e088_Envelop- Solid 1.docx', '2025-06-26 12:44:19'),
-(9, 648, 'education', 'C:/wamp64/www/std_mgmt/uploads/documents/685d40a8e7520_685d17d99e62d_Envelop- Solid 2.docx', '2025-06-26 12:44:24'),
-(10, 648, 'work_experience', 'C:/wamp64/www/std_mgmt/uploads/documents/685d40b565649_Envelop- Solid 1.docx', '2025-06-26 12:44:37');
+) ENGINE=MyISAM AUTO_INCREMENT=38 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -63,14 +54,7 @@ CREATE TABLE IF NOT EXISTS `followups` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `lead_id` (`lead_id`)
-) ENGINE=MyISAM AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Dumping data for table `followups`
---
-
-INSERT INTO `followups` (`id`, `lead_id`, `number`, `followup_date`, `comment`, `created_at`) VALUES
-(6, 648, 2, '2025-06-26', 'RNR', '2025-06-26 12:45:15');
+) ENGINE=MyISAM AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -85,45 +69,35 @@ CREATE TABLE IF NOT EXISTS `leads` (
   `full_name` varchar(100) NOT NULL,
   `email` varchar(100) NOT NULL,
   `phone` varchar(20) NOT NULL,
+  `date_of_birth` date DEFAULT NULL,
+  `nic_number` varchar(12) DEFAULT NULL,
   `permanent_address` text,
   `work_experience` text,
   `assigned_user_id` int DEFAULT NULL,
   `status` enum('new','assigned','pending_registration','registered','declined') DEFAULT 'new',
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  `registration_status` varchar(50) DEFAULT 'pending',
   PRIMARY KEY (`id`),
   KEY `assigned_user_id` (`assigned_user_id`)
-) ENGINE=MyISAM AUTO_INCREMENT=651 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=1101 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+-- --------------------------------------------------------
 
 --
--- Dumping data for table `leads`
+-- Table structure for table `payments`
 --
 
-INSERT INTO `leads` (`id`, `form_name`, `full_name`, `email`, `phone`, `permanent_address`, `work_experience`, `assigned_user_id`, `status`, `created_at`) VALUES
-(649, 'Workshop on Import & Export (May Batch) 2025', 'Meshan', 'ceylonpots@gmail.com', '94715121512', NULL, NULL, 2, 'declined', '2025-06-26 12:42:51'),
-(650, 'Workshop on Import & Export (May Batch) 2025', 'Noordeen Nawoor-pichchai', 'Quicknet25@gmail.com', '94777731608', NULL, NULL, 2, 'registered', '2025-06-26 12:42:51'),
-(648, 'Workshop on Import & Export (May Batch) 2025', 'Chameen Handungoda', 'chameenhandugoda@yahoo.com', '94777747701', 'Welimada', '1 year', 2, 'assigned', '2025-06-26 12:42:51'),
-(647, 'Workshop on Import & Export (May Batch) 2025', 'Gentlemen Politics Mahesh', 'liyanagethushara77@gmail.com', '94727500800', NULL, NULL, 2, 'assigned', '2025-06-26 12:42:51'),
-(645, 'Workshop on Import & Export (May Batch) 2025', 'Sarujan', 'sarusarujan20050904@gmail.com', '94771676159', NULL, NULL, NULL, 'new', '2025-06-26 12:42:51'),
-(646, 'Workshop on Import & Export (May Batch) 2025', 'Ranjana Gunawardana', 'ranjanag.mrt.89@gmail.com', '94772106046', NULL, NULL, NULL, 'new', '2025-06-26 12:42:51'),
-(642, 'Workshop on Import & Export (May Batch) 2025', 'Mohamed Ahsan', 'aishooahsan@gmail.com', '94750671111', NULL, NULL, NULL, 'new', '2025-06-26 12:42:51'),
-(643, 'Workshop on Import & Export (May Batch) 2025', 'Raveenthirarajah Nilaxshan', 'nilaxshan83@gmail.com', '94775004957', NULL, NULL, NULL, 'new', '2025-06-26 12:42:51'),
-(644, 'Workshop on Import & Export (May Batch) 2025', 'Dilakshan Dls', 'dilakslakshan@gmail.com', '94757127426', NULL, NULL, NULL, 'new', '2025-06-26 12:42:51'),
-(641, 'Workshop on Import & Export (May Batch) 2025', 'N. Denarshan', 'ndenarshan07@gmail.com', '94777725064', NULL, NULL, NULL, 'new', '2025-06-26 12:42:51'),
-(640, 'Workshop on Import & Export (May Batch) 2025', 'Mahmooth Majith', 'majithnat@gmail.com', '94778729618', NULL, NULL, NULL, 'new', '2025-06-26 12:42:51'),
-(639, 'Workshop on Import & Export (May Batch) 2025', 'Abdul Basith Thihariya', 'miabbasith@gmail.com', '94777697589', NULL, NULL, NULL, 'new', '2025-06-26 12:42:51'),
-(638, 'Workshop on Import & Export (May Batch) 2025', 'Kengalingam Kirushanth  in UAE', 'kengalingamkirushanth@yahoo.com', '94754404092', NULL, NULL, NULL, 'new', '2025-06-26 12:42:51'),
-(637, 'Workshop on Import & Export (May Batch) 2025', 'MR.HAPPY', 'umarcader2303@gmail.com', '94772380770', NULL, NULL, NULL, 'new', '2025-06-26 12:42:51'),
-(634, 'Workshop on Import & Export (May Batch) 2025', 'Karuna Susil Seneviratne', 'karunasusil@yahoo.com', '94712733779', NULL, NULL, NULL, 'new', '2025-06-26 12:42:51'),
-(635, 'Workshop on Import & Export (May Batch) 2025', 'Ronny Amalnath', 'ronny.amalnath@yahoo.com', '94770411986', NULL, NULL, NULL, 'new', '2025-06-26 12:42:51'),
-(636, 'Workshop on Import & Export (May Batch) 2025', 'Dileepa Suranjith Waduge', 'singhaconstruction04@gmail.com', '94714137571', NULL, NULL, NULL, 'new', '2025-06-26 12:42:51'),
-(633, 'Workshop on Import & Export (May Batch) 2025', 'Amjad Mohideen', 'amjad_ac123@rocketmail.com', '94777629840', NULL, NULL, NULL, 'new', '2025-06-26 12:42:51'),
-(632, 'Workshop on Import & Export (May Batch) 2025', 'Prabasha Thilakarathne', 'buddhipt@gmail.com', '94332292945', NULL, NULL, NULL, 'new', '2025-06-26 12:42:51'),
-(631, 'Workshop on Import & Export (May Batch) 2025', 'pmkumara', 'pmkumara5@gmail.com', '94772448985', NULL, NULL, NULL, 'new', '2025-06-26 12:42:51'),
-(630, 'Workshop on Import & Export (May Batch) 2025', 'Kavindu Piyathilaka', 'kavindupiyathilaka@gmail.com', '94778107634', NULL, NULL, NULL, 'new', '2025-06-26 12:42:51'),
-(629, 'Workshop on vat', 'Mohamed', 'maxmaxzahir123@gmail.com', '94773792626', NULL, NULL, 2, 'assigned', '2025-06-26 12:42:51'),
-(628, 'Workshop on vat', 'Shashi Edirisinghe', 'shashiediri123@gmail.com', '94766715233', NULL, NULL, 2, 'assigned', '2025-06-26 12:42:51'),
-(627, 'Workshop on vat', 'Ragulan Kanapathippillai', 'kragulan95@gmail.com', '94768880808', NULL, NULL, NULL, 'new', '2025-06-26 12:42:51'),
-(626, 'Workshop on vat', 'Mohamed Hasanar Azeez Ali', 'azeezali21@gmail.com', '94754330330', NULL, NULL, NULL, 'new', '2025-06-26 12:42:51');
+DROP TABLE IF EXISTS `payments`;
+CREATE TABLE IF NOT EXISTS `payments` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `lead_id` int NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `receipt_path` varchar(255) NOT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `payment_name` varchar(100) DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `lead_id` (`lead_id`)
+) ENGINE=MyISAM AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -142,15 +116,7 @@ CREATE TABLE IF NOT EXISTS `registrations` (
   `updated_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `lead_id` (`lead_id`)
-) ENGINE=MyISAM AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
---
--- Dumping data for table `registrations`
---
-
-INSERT INTO `registrations` (`id`, `lead_id`, `marketing_manager_approval`, `academic_user_approval`, `status`, `created_at`, `updated_at`) VALUES
-(5, 650, 'accepted', 'accepted', 'completed', '2025-06-26 12:43:56', '2025-06-26 12:49:37'),
-(4, 649, 'declined', 'declined', 'declined', '2025-06-26 12:43:50', '2025-06-26 12:52:51');
+) ENGINE=MyISAM AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 

@@ -9,11 +9,13 @@ require_once __DIR__ . '/../../backend/controllers/AuthController.php';
 require_once __DIR__ . '/../../backend/controllers/LeadController.php';
 require_once __DIR__ . '/../../backend/controllers/DocumentController.php';
 require_once __DIR__ . '/../../backend/controllers/RegistrationController.php';
+require_once __DIR__ . '/../../backend/controllers/PaymentController.php'; // Added for payment details
 
 $leadController = new LeadController($pdo);
 $documentController = new DocumentController($pdo);
 $registrationController = new RegistrationController($pdo);
 $authController = new AuthController($pdo);
+$paymentController = new PaymentController($pdo); // Added PaymentController
 
 $user = $authController->getCurrentUser();
 if (!$user || $user['role'] !== 'academic_user') {
@@ -36,6 +38,7 @@ if (!isset($lead_id) || !is_numeric($lead_id)) {
 $documents = isset($lead_id) ? $documentController->getDocumentsByLead($lead_id) : [];
 error_log("Documents retrieved for lead_id=$lead_id: " . print_r($documents, true) . " at " . date('Y-m-d H:i:s'));
 $registration = isset($lead_id) ? $registrationController->getRegistrationByLeadId($lead_id) : null;
+$payments = isset($lead_id) ? $paymentController->getPaymentsByLead($lead_id) : []; // Added to fetch payments
 
 define('BASE_PATH', '/std_mgmt');
 $currentPage = basename($_SERVER['PHP_SELF']);
@@ -177,6 +180,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                     <td><?php echo htmlspecialchars($lead['phone'] ?? 'N/A'); ?></td>
                                 </tr>
                                 <tr>
+                                    <th>Date of Birth</th>
+                                    <td><?php echo htmlspecialchars($lead['date_of_birth'] ?? 'N/A'); ?></td>
+                                </tr>
+                                <tr>
+                                    <th>NIC</th>
+                                    <td><?php echo htmlspecialchars($lead['nic_number'] ?? 'N/A'); ?></td>
+                                </tr>
+                                <tr>
                                     <th>Permanent Address</th>
                                     <td><?php echo htmlspecialchars($lead['permanent_address'] ?? 'N/A'); ?></td>
                                 </tr>
@@ -227,6 +238,34 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                             ?></td>
                                             <td class="action-cell"><a href="/std_mgmt/uploads/documents/<?php echo htmlspecialchars(basename($doc['file_path'] ?? '')); ?>" target="_blank" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">View</a></td>
                                             <td><?php echo htmlspecialchars($doc['uploaded_at'] ?? 'N/A'); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+
+                    <h2 class="text-xl font-semibold mt-8 mb-4 text-blue-800">Payments</h2>
+                    <?php if (empty($payments)): ?>
+                        <div class="p-4 text-gray-600">No payments recorded.</div>
+                    <?php else: ?>
+                        <div class="overflow-x-auto">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Payment Name</th>
+                                        <th>Amount (INR)</th>
+                                        <th>Receipt</th>
+                                        <th>Paid At</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($payments as $payment): ?>
+                                        <tr>
+                                            <td><?php echo htmlspecialchars($payment['payment_name'] ?? 'N/A'); ?></td>
+                                            <td><?php echo htmlspecialchars(number_format($payment['amount'], 2)); ?></td>
+                                            <td class="action-cell"><a href="/std_mgmt/uploads/payments/<?php echo htmlspecialchars(basename($payment['receipt_path'] ?? '')); ?>" target="_blank" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">View</a></td>
+                                            <td><?php echo htmlspecialchars($payment['created_at'] ?? 'N/A'); ?></td>
                                         </tr>
                                     <?php endforeach; ?>
                                 </tbody>

@@ -10,6 +10,7 @@ require_once __DIR__ . '/../../backend/controllers/LeadController.php';
 require_once __DIR__ . '/../../backend/controllers/DocumentController.php';
 require_once __DIR__ . '/../../backend/controllers/FollowupController.php';
 require_once __DIR__ . '/../../backend/controllers/RegistrationController.php';
+require_once __DIR__ . '/../../backend/controllers/PaymentController.php'; // Added for payment details
 
 $auth = new AuthController($pdo);
 $user = $auth->getCurrentUser();
@@ -22,6 +23,7 @@ $leadController = new LeadController($pdo);
 $documentController = new DocumentController($pdo);
 $followupController = new FollowupController($pdo);
 $registrationController = new RegistrationController($pdo);
+$paymentController = new PaymentController($pdo); // Added PaymentController
 
 if (!isset($_GET['lead_id']) || !is_numeric($_GET['lead_id'])) {
     $error = "Error: No valid lead ID provided.";
@@ -38,6 +40,7 @@ $followups = isset($lead_id) ? $followupController->getFollowupsByLead($lead_id)
 $registration = isset($lead_id) ? $registrationController->getPendingRegistrations(null, null) : [];
 $registration = !empty($registration) ? array_filter($registration, fn($r) => $r['lead_id'] == $lead_id) : [];
 $registration = !empty($registration) ? reset($registration) : null;
+$payments = isset($lead_id) ? $paymentController->getPaymentsByLead($lead_id) : []; // Added to fetch payments
 
 define('BASE_PATH', '/std_mgmt');
 $currentPage = basename($_SERVER['PHP_SELF']);
@@ -188,6 +191,14 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                     <td><?php echo htmlspecialchars($lead['phone']); ?></td>
                                 </tr>
                                 <tr>
+                                    <th>Date of Birth</th>
+                                    <td><?php echo htmlspecialchars($lead['date_of_birth']); ?></td>
+                                </tr>
+                                <tr>
+                                    <th>NIC</th>
+                                    <td><?php echo htmlspecialchars($lead['nic_number']); ?></td>
+                                </tr>
+                                <tr>
                                     <th>Permanent Address</th>
                                     <td><?php echo htmlspecialchars($lead['permanent_address'] ?: 'N/A'); ?></td>
                                 </tr>
@@ -259,6 +270,34 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         </div>
                     <?php endif; ?>
 
+                    <h2 class="text-xl font-semibold mt-8 mb-4">Payments</h2>
+                    <?php if (empty($payments)): ?>
+                        <div class="p-4 text-gray-600">No payments recorded.</div>
+                    <?php else: ?>
+                        <div class="overflow-x-auto">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Payment Name</th>
+                                        <th>Amount (INR)</th>
+                                        <th>Receipt</th>
+                                        <th>Paid At</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($payments as $payment): ?>
+                                        <tr>
+                                            <td><?php echo htmlspecialchars($payment['payment_name'] ?? 'N/A'); ?></td>
+                                            <td><?php echo htmlspecialchars(number_format($payment['amount'], 2)); ?></td>
+                                            <td><a href="/std_mgmt/uploads/payments/<?php echo htmlspecialchars(basename($payment['receipt_path'])); ?>" target="_blank" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">View</a></td>
+                                            <td><?php echo htmlspecialchars($payment['created_at'] ?? 'N/A'); ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
+
                     <h2 class="text-xl font-semibold mt-8 mb-4">Follow-ups</h2>
                     <?php if (empty($followups)): ?>
                         <div class="p-4 text-gray-600">No follow-ups added.</div>
@@ -286,6 +325,8 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             </table>
                         </div>
                     <?php endif; ?>
+
+                    
 
                     <div class="mt-6">
                         <a href="/std_mgmt/views/admin/<?php echo $lead['status'] === 'registered' ? 'registered_leads.php?course=' . urlencode($lead['form_name']) : 'assigned_leads.php?course=' . urlencode($lead['form_name']); ?>" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Back</a>
