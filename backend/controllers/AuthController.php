@@ -34,8 +34,11 @@ class AuthController {
     }
 
     public function logout() {
-        session_destroy();
-        header('Location: /std_mgmt/views/auth/login.php');
-        exit;
+        session_start(); // Ensure session is started
+        session_unset(); // Remove all session variables
+        session_destroy(); // Destroy the session
+        setcookie(session_name(), '', time() - 3600, '/'); // Delete the session cookie
+        header('Location: /std_mgmt/views/auth/login.php'); // Redirect to login page
+        exit; // Ensure script stops
     }
 }
