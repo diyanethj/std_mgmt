@@ -106,9 +106,13 @@ class Lead {
         return $stmt->execute([$status, $lead_id]);
     }
 
-    public function updateLeadDetails($lead_id, $permanent_address, $work_experience, $date_of_birth, $nic_number) {
-        $stmt = $this->pdo->prepare("UPDATE leads SET permanent_address = ?, work_experience = ?, date_of_birth = ?, nic_number = ? WHERE id = ?");
-        return $stmt->execute([$permanent_address, $work_experience, $date_of_birth, $nic_number, $lead_id]);
+    public function updateLeadDetails($lead_id, $form_name, $title, $full_name, $nic_number, $passport_number, $date_of_birth, $gender, $nationality, $marital_status, $permanent_address, $current_address, $mobile_no, $email_address, $office_address, $office_email, $parent_guardian_name, $parent_contact_number, $parent_address, $company_institution, $postcode) {
+        $stmt = $this->pdo->prepare("UPDATE leads SET form_name = ?, title = ?, full_name = ?, nic_number = ?, passport_number = ?, date_of_birth = ?, gender = ?, nationality = ?, marital_status = ?, permanent_address = ?, current_address = ?, mobile_no = ?, email_address = ?, office_address = ?, office_email = ?, parent_guardian_name = ?, parent_contact_number = ?, parent_address = ?, company_institution = ?, postcode = ? WHERE id = ?");
+        $result = $stmt->execute([$form_name ?: null, $title ?: null, $full_name ?: null, $nic_number ?: null, $passport_number ?: null, $date_of_birth ?: null, $gender ?: null, $nationality ?: null, $marital_status ?: null, $permanent_address ?: null, $current_address ?: null, $mobile_no ?: null, $email_address ?: null, $office_address ?: null, $office_email ?: null, $parent_guardian_name ?: null, $parent_contact_number ?: null, $parent_address ?: null, $company_institution ?: null, $postcode ?: null, $lead_id]);
+        if (!$result) {
+            error_log("Failed to update lead details for lead_id $lead_id: " . print_r([$form_name, $title, $full_name, $nic_number, $passport_number, $date_of_birth, $gender, $nationality, $marital_status, $permanent_address, $current_address, $mobile_no, $email_address, $office_address, $office_email, $parent_guardian_name, $parent_contact_number, $parent_address, $company_institution, $postcode], true));
+        }
+        return $result;
     }
 
     public function getTotalLeads()

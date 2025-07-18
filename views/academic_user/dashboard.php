@@ -29,7 +29,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Academic User Dashboard - Student Management System</title>
+    <title>Admission & Examination Dashboard - Student Management System</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&family=Roboto:wght@300;400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/std_mgmt/css/style.css?v=<?php echo time(); ?>">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -52,7 +52,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         <!-- Sidebar -->
         <div id="sidebar" class="sidebar fixed inset-y-0 left-0 w-64 bg-gradient-to-b from-blue-900 to-blue-700 text-white p-4 md:relative md:translate-x-0 z-10 shadow-lg">
             <div class="flex items-center justify-between mb-6">
-                <h2 class="text-2xl font-bold text-glow">Academic User Panel</h2>
+                <h2 class="text-2xl font-bold text-glow">Admission & Examination Department</h2>
                 <button id="closeSidebar" class="md:hidden text-white focus:outline-none">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
@@ -101,7 +101,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
             <!-- Dashboard Content -->
             <div class="max-w-4xl mx-auto bg-white/80 backdrop-blur-md p-6 rounded-xl shadow-xl">
-                <h1 class="text-3xl font-bold mb-4 text-blue-900 text-shadow">Welcome, <?php echo htmlspecialchars($user['username']); ?> (Academic User)</h1>
+                <h1 class="text-3xl font-bold mb-4 text-blue-900 text-shadow">Welcome, <?php echo htmlspecialchars($user['username']); ?> Admission & Examination Department</h1>
                 <p class="mb-6 text-gray-700 text-lg">Review pending registrations and registered leads from this dashboard.</p>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
                     <div class="bg-gradient-to-br from-green-100 to-green-200 p-4 rounded-xl text-center shadow-lg hover:shadow-2xl transition-all duration-300">

@@ -7,13 +7,11 @@ if (!isset($pdo)) {
 }
 require_once __DIR__ . '/../../backend/controllers/LeadController.php';
 require_once __DIR__ . '/../../backend/controllers/DocumentController.php';
-require_once __DIR__ . '/../../backend/controllers/FollowupController.php';
 require_once __DIR__ . '/../../backend/controllers/AuthController.php';
 require_once __DIR__ . '/../../backend/controllers/PaymentController.php';
 
 $leadController = new LeadController($pdo);
 $documentController = new DocumentController($pdo);
-$followupController = new FollowupController($pdo);
 $authController = new AuthController($pdo);
 $paymentController = new PaymentController($pdo);
 
@@ -120,13 +118,52 @@ if (isset($error)) {
     exit;
 }
 
+// Initialize variables with default values from $lead
+$form_name = $lead['form_name'] ?? null;
+$title = $lead['title'] ?? null;
+$full_name = $lead['full_name'] ?? null;
+$nic_number = $lead['nic_number'] ?? null;
+$passport_number = $lead['passport_number'] ?? null;
+$date_of_birth = $lead['date_of_birth'] ?? null;
+$gender = $lead['gender'] ?? null;
+$nationality = $lead['nationality'] ?? null;
+$marital_status = $lead['marital_status'] ?? null;
+$permanent_address = $lead['permanent_address'] ?? null;
+$current_address = $lead['current_address'] ?? null;
+$mobile_no = $lead['mobile_no'] ?? null;
+$email_address = $lead['email_address'] ?? null;
+$office_address = $lead['office_address'] ?? null;
+$office_email = $lead['office_email'] ?? null;
+$parent_guardian_name = $lead['parent_guardian_name'] ?? null;
+$parent_contact_number = $lead['parent_contact_number'] ?? null;
+$parent_address = $lead['parent_address'] ?? null;
+$company_institution = $lead['company_institution'] ?? null;
+$postcode = $lead['postcode'] ?? null;
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user['role'] === 'marketing_user') {
     if (isset($_POST['update_details'])) {
+        $form_name = trim($_POST['form_name'] ?? '');
+        $title = trim($_POST['title'] ?? '');
+        $full_name = trim($_POST['full_name'] ?? '');
+        $nic_number = trim($_POST['nic_number'] ?? '');
+        $passport_number = trim($_POST['passport_number'] ?? '');
+        $date_of_birth = trim($_POST['date_of_birth'] ?? '');
+        $gender = trim($_POST['gender'] ?? '');
+        $nationality = trim($_POST['nationality'] ?? '');
+        $marital_status = trim($_POST['marital_status'] ?? '');
         $permanent_address = trim($_POST['permanent_address'] ?? '');
-        $work_experience = trim($_POST['work_experience'] ?? '');
-        $date_of_birth = trim($_POST['date_of_birth'] ?? ''); // Added
-        $nic_number = trim($_POST['nic_number'] ?? ''); // Added
-        if ($leadController->updateLeadDetails($lead_id, $permanent_address, $work_experience, $date_of_birth, $nic_number)) { // Updated to include new fields
+        $current_address = trim($_POST['current_address'] ?? '');
+        $mobile_no = trim($_POST['mobile_no'] ?? '');
+        $email_address = trim($_POST['email_address'] ?? '');
+        $office_address = trim($_POST['office_address'] ?? '');
+        $office_email = trim($_POST['office_email'] ?? '');
+        $parent_guardian_name = trim($_POST['parent_guardian_name'] ?? '');
+        $parent_contact_number = trim($_POST['parent_contact_number'] ?? '');
+        $parent_address = trim($_POST['parent_address'] ?? '');
+        $company_institution = trim($_POST['company_institution'] ?? '');
+        $postcode = trim($_POST['postcode'] ?? '');
+
+        if ($leadController->updateLeadDetails($lead_id, $form_name, $title, $full_name, $nic_number, $passport_number, $date_of_birth, $gender, $nationality, $marital_status, $permanent_address, $current_address, $mobile_no, $email_address, $office_address, $office_email, $parent_guardian_name, $parent_contact_number, $parent_address, $company_institution, $postcode)) {
             header('Location: /std_mgmt/views/marketing_user/lead_details.php?lead_id=' . $lead_id . '&success=Details updated successfully');
             exit;
         } else {
@@ -135,7 +172,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user['role'] === 'marketing_user')
     } elseif (isset($_POST['upload_document'])) {
         if (isset($_FILES['document']) && $_FILES['document']['error'] === UPLOAD_ERR_OK) {
             $document_type = $_POST['document_type'];
-            if (in_array($document_type, ['nic', 'education', 'work_experience', 'birth_certificate'])) {
+            $valid_types = ['nic_passport', 'academic_docs', 'diploma_certificate', 'employment_history', 'birth_certificate', 'passport_photos'];
+            if (in_array($document_type, $valid_types)) {
                 if ($documentController->uploadDocument($lead_id, $document_type, $_FILES['document'])) {
                     header('Location: /std_mgmt/views/marketing_user/lead_details.php?lead_id=' . $lead_id . '&success=Document uploaded successfully');
                     exit;
@@ -148,54 +186,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user['role'] === 'marketing_user')
         } else {
             $error = 'Invalid document file';
         }
-    } elseif (isset($_POST['add_followup'])) {
-        $number = (int)($_POST['number'] ?? 0);
-        $followup_date = $_POST['followup_date'] ?? '';
-        $comment = trim($_POST['comment'] ?? '');
-        if ($number > 0 && $followup_date && $comment) {
-            if ($followupController->addFollowup($lead_id, $number, $followup_date, $comment)) {
-                header('Location: /std_mgmt/views/marketing_user/lead_details.php?lead_id=' . $lead_id . '&success=Follow-up added successfully');
-                exit;
-            } else {
-                $error = 'Failed to add follow-up';
-            }
-        } else {
-            $error = 'All follow-up fields are required';
-        }
-    } elseif (isset($_POST['update_followups'])) {
-        $followupUpdates = [];
-        if (isset($_POST['followup_id']) && is_array($_POST['followup_id'])) {
-            foreach ($_POST['followup_id'] as $index => $followup_id) {
-                $number = (int)($_POST['number'][$index] ?? 0);
-                $followup_date = $_POST['followup_date'][$index] ?? '';
-                $comment = trim($_POST['comment'][$index] ?? '');
-                if ($number > 0 && $followup_date && $comment) {
-                    $followupUpdates[$followup_id] = ['number' => $number, 'followup_date' => $followup_date, 'comment' => $comment];
-                }
-            }
-        }
-        $success = false;
-        if (!empty($followupUpdates)) {
-            if (method_exists($followupController, 'updateMultipleFollowups')) {
-                $success = $followupController->updateMultipleFollowups($lead_id, $followupUpdates);
-            } else {
-                foreach ($followupUpdates as $followup_id => $data) {
-                    $success = $followupController->updateFollowup($followup_id, $lead_id, $data['number'], $data['followup_date'], $data['comment']);
-                    if (!$success) break;
-                }
-            }
-        }
-        if ($success) {
-            header('Location: /std_mgmt/views/marketing_user/lead_details.php?lead_id=' . $lead_id . '&success=Follow-ups updated successfully');
-            exit;
-        } else {
-            $error = 'Failed to update follow-ups or no valid updates provided';
-        }
     } elseif (isset($_POST['add_payment'])) {
         $amount = (float)($_POST['amount'] ?? 0);
-        $payment_name = trim($_POST['payment_name'] ?? ''); // Added payment name
+        $payment_name = trim($_POST['payment_name'] ?? '');
         if (isset($_FILES['receipt']) && $_FILES['receipt']['error'] === UPLOAD_ERR_OK && $amount > 0) {
-            if ($paymentController->addPayment($lead_id, $amount, $payment_name, $_FILES['receipt'])) { // Updated to include payment_name
+            if ($paymentController->addPayment($lead_id, $amount, $payment_name, $_FILES['receipt'])) {
                 header('Location: /std_mgmt/views/marketing_user/lead_details.php?lead_id=' . $lead_id . '&success=Payment added successfully');
                 exit;
             } else {
@@ -212,14 +207,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user['role'] === 'marketing_user')
         } else {
             $error = 'Failed to delete document';
         }
-    } elseif (isset($_POST['delete_followup'])) {
-        $followup_id = (int)$_POST['followup_id'];
-        if ($followupController->deleteFollowup($followup_id, $lead_id)) {
-            header('Location: /std_mgmt/views/marketing_user/lead_details.php?lead_id=' . $lead_id . '&success=Follow-up deleted successfully');
-            exit;
-        } else {
-            $error = 'Failed to delete follow-up';
-        }
     } elseif (isset($_POST['delete_payment'])) {
         $payment_id = (int)$_POST['payment_id'];
         if ($paymentController->deletePayment($payment_id, $lead_id)) {
@@ -232,10 +219,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user['role'] === 'marketing_user')
 }
 
 $documents = $documentController->getDocumentsByLead($lead_id);
-$followups = $followupController->getFollowupsByLead($lead_id);
 $payments = $paymentController->getPaymentsByLead($lead_id);
 error_log("Documents: " . print_r($documents, true) . " at " . date('Y-m-d H:i:s'));
-error_log("Follow-ups: " . print_r($followups, true) . " at " . date('Y-m-d H:i:s'));
 error_log("Payments: " . print_r($payments, true) . " at " . date('Y-m-d H:i:s'));
 
 define('BASE_PATH', '/std_mgmt');
@@ -362,40 +347,150 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                 <div class="overflow-x-auto">
                     <table class="table">
                         <tbody>
-                            <tr><th>Course Name</th><td><?php echo htmlspecialchars($lead['form_name']); ?></td></tr>
-                            <tr><th>Full Name</th><td><?php echo htmlspecialchars($lead['full_name']); ?></td></tr>
-                            <tr><th>Email</th><td><?php echo htmlspecialchars($lead['email']); ?></td></tr>
-                            <tr><th>Phone</th><td><?php echo htmlspecialchars($lead['phone']); ?></td></tr>
-                            <tr><th>Date of Birth</th><td><?php echo htmlspecialchars($lead['date_of_birth'] ?: 'N/A'); ?></td></tr>
-                            <tr><th>NIC Number</th><td><?php echo htmlspecialchars($lead['nic_number'] ?: 'N/A'); ?></td></tr>
-                            <tr><th>Permanent Address</th><td><?php echo htmlspecialchars($lead['permanent_address'] ?: 'N/A'); ?></td></tr>
-                            <tr><th>Work Experience</th><td><?php echo htmlspecialchars($lead['work_experience'] ?: 'N/A'); ?></td></tr>
-                            <tr><th>Status</th><td><?php echo htmlspecialchars($lead['status']); ?></td></tr>
-                            <tr><th>Created At</th><td><?php echo htmlspecialchars($lead['created_at']); ?></td></tr>
+                            <tr><th>Course Name</th><td><?php echo htmlspecialchars($lead['form_name'] ?? 'N/A'); ?></td></tr>
+                            <tr><th>Title</th><td><?php echo htmlspecialchars($lead['title'] ?? 'N/A'); ?></td></tr>
+                            <tr><th>Full Name</th><td><?php echo htmlspecialchars($lead['full_name'] ?? 'N/A'); ?></td></tr>
+                            <tr><th>NIC Number</th><td><?php echo htmlspecialchars($lead['nic_number'] ?? 'N/A'); ?></td></tr>
+                            <tr><th>Passport Number</th><td><?php echo htmlspecialchars($lead['passport_number'] ?? 'N/A'); ?></td></tr>
+                            <tr><th>Date of Birth</th><td><?php echo htmlspecialchars($lead['date_of_birth'] ?? 'N/A'); ?></td></tr>
+                            <tr><th>Gender</th><td><?php echo htmlspecialchars($lead['gender'] ?? 'N/A'); ?></td></tr>
+                            <tr><th>Nationality</th><td><?php echo htmlspecialchars($lead['nationality'] ?? 'N/A'); ?></td></tr>
+                            <tr><th>Marital Status</th><td><?php echo htmlspecialchars($lead['marital_status'] ?? 'N/A'); ?></td></tr>
+                            <tr><th>Permanent Address</th><td><?php echo htmlspecialchars($lead['permanent_address'] ?? 'N/A'); ?></td></tr>
+                            <tr><th>Current Address</th><td><?php echo htmlspecialchars($lead['current_address'] ?? 'N/A'); ?></td></tr>
+                            <tr><th>Postcode</th><td><?php echo htmlspecialchars($lead['postcode'] ?? 'N/A'); ?></td></tr>
+                            <tr><th>Mobile No</th><td><?php echo htmlspecialchars($lead['mobile_no'] ?? 'N/A'); ?></td></tr>
+                            <tr><th>Email Address</th><td><?php echo htmlspecialchars($lead['email_address'] ?? 'N/A'); ?></td></tr>
+                            <tr><th>Office Address</th><td><?php echo htmlspecialchars($lead['office_address'] ?? 'N/A'); ?></td></tr>
+                            <tr><th>Office Email</th><td><?php echo htmlspecialchars($lead['office_email'] ?? 'N/A'); ?></td></tr>
+                            <tr><th>Parent's / Guardian's Name</th><td><?php echo htmlspecialchars($lead['parent_guardian_name'] ?? 'N/A'); ?></td></tr>
+                            <tr><th>Parent Contact Number</th><td><?php echo htmlspecialchars($lead['parent_contact_number'] ?? 'N/A'); ?></td></tr>
+                            <tr><th>Parent Address</th><td><?php echo htmlspecialchars($lead['parent_address'] ?? 'N/A'); ?></td></tr>
+                            <tr><th>Company / Institution</th><td><?php echo htmlspecialchars($lead['company_institution'] ?? 'N/A'); ?></td></tr>
+                            <tr><th>Status</th><td><?php echo htmlspecialchars($lead['status'] ?? 'N/A'); ?></td></tr>
+                            <tr><th>Created At</th><td><?php echo htmlspecialchars($lead['created_at'] ?? 'N/A'); ?></td></tr>
                         </tbody>
                     </table>
                 </div>
 
                 <?php if ($user['role'] === 'marketing_user'): ?>
-                    <h2 class="text-xl font-semibold mt-8 mb-4 text-blue-800">Update Address and Work Experience</h2>
+                    <h2 class="text-xl font-semibold mt-8 mb-4 text-blue-800">Update Lead Details</h2>
                     <form method="POST" action="/std_mgmt/views/marketing_user/lead_details.php?lead_id=<?php echo htmlspecialchars((string)$lead_id); ?>" class="bg-gray-50 p-6 rounded-lg shadow-sm">
                         <input type="hidden" name="update_details" value="1">
-                        <div class="form-group">
-                            <label>Date of Birth</label>
-                            <input type="date" name="date_of_birth" value="<?php echo htmlspecialchars($lead['date_of_birth'] ?: ''); ?>">
+                        <h3 class="text-lg font-semibold mb-4 text-blue-700">1.1.1. General Information</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="form-group">
+                                <label>Course Name</label>
+                                <input type="text" name="form_name" value="<?php echo htmlspecialchars($form_name ?? ''); ?>" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Title (Salutation)</label>
+                                <select name="title" required>
+                                    <option value="" <?php echo !$title ? 'selected' : ''; ?>>Select Title</option>
+                                    <option value="Rev" <?php echo $title === 'Rev' ? 'selected' : ''; ?>>Rev</option>
+                                    <option value="Dr" <?php echo $title === 'Dr' ? 'selected' : ''; ?>>Dr</option>
+                                    <option value="Mr" <?php echo $title === 'Mr' ? 'selected' : ''; ?>>Mr</option>
+                                    <option value="Mrs" <?php echo $title === 'Mrs' ? 'selected' : ''; ?>>Mrs</option>
+                                    <option value="Ms" <?php echo $title === 'Ms' ? 'selected' : ''; ?>>Ms</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Full Name</label>
+                                <input type="text" name="full_name" value="<?php echo htmlspecialchars($full_name ?? ''); ?>" required>
+                            </div>
+                            <div class="form-group">
+                                <label>NIC Number</label>
+                                <input type="text" name="nic_number" value="<?php echo htmlspecialchars($nic_number ?? ''); ?>" placeholder="Enter NIC number">
+                            </div>
+                            <div class="form-group">
+                                <label>Passport Number</label>
+                                <input type="text" name="passport_number" value="<?php echo htmlspecialchars($passport_number ?? ''); ?>" placeholder="Enter Passport number">
+                            </div>
+                            <div class="form-group">
+                                <label>Date of Birth</label>
+                                <input type="date" name="date_of_birth" value="<?php echo htmlspecialchars($date_of_birth ?? ''); ?>">
+                            </div>
+                            <div class="form-group">
+                                <label>Gender</label>
+                                <select name="gender" required>
+                                    <option value="" <?php echo !$gender ? 'selected' : ''; ?>>Select Gender</option>
+                                    <option value="Male" <?php echo $gender === 'Male' ? 'selected' : ''; ?>>Male</option>
+                                    <option value="Female" <?php echo $gender === 'Female' ? 'selected' : ''; ?>>Female</option>
+                                    <option value="Other" <?php echo $gender === 'Other' ? 'selected' : ''; ?>>Other</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>Nationality</label>
+                                <input type="text" name="nationality" value="<?php echo htmlspecialchars($nationality ?? ''); ?>" placeholder="e.g., Sri Lankan">
+                            </div>
+                            <div class="form-group">
+                                <label>Marital Status</label>
+                                <select name="marital_status" required>
+                                    <option value="" <?php echo !$marital_status ? 'selected' : ''; ?>>Select Status</option>
+                                    <option value="Single" <?php echo $marital_status === 'Single' ? 'selected' : ''; ?>>Single</option>
+                                    <option value="Married" <?php echo $marital_status === 'Married' ? 'selected' : ''; ?>>Married</option>
+                                    <option value="Divorced" <?php echo $marital_status === 'Divorced' ? 'selected' : ''; ?>>Divorced</option>
+                                    <option value="Widowed" <?php echo $marital_status === 'Widowed' ? 'selected' : ''; ?>>Widowed</option>
+                                </select>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>NIC Number</label>
-                            <input type="text" name="nic_number" value="<?php echo htmlspecialchars($lead['nic_number'] ?: ''); ?>" placeholder="Enter NIC number">
+
+                        <h3 class="text-lg font-semibold mt-6 mb-4 text-blue-700">1.1.2. Contact Information</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="form-group">
+                                <label>Permanent Address</label>
+                                <textarea name="permanent_address" class="form-control"><?php echo htmlspecialchars($permanent_address ?? ''); ?></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Current Address</label>
+                                <textarea name="current_address" class="form-control"><?php echo htmlspecialchars($current_address ?? ''); ?></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Postcode</label>
+                                <input type="text" name="postcode" value="<?php echo htmlspecialchars($postcode ?? ''); ?>" placeholder="Enter postcode">
+                            </div>
+                            <div class="form-group">
+                                <label>Mobile No</label>
+                                <input type="text" name="mobile_no" value="<?php echo htmlspecialchars($mobile_no ?? ''); ?>" placeholder="Enter mobile number">
+                            </div>
+                            <div class="form-group">
+                                <label>Email Address</label>
+                                <input type="email" name="email_address" value="<?php echo htmlspecialchars($email_address ?? ''); ?>" placeholder="Enter email">
+                            </div>
+                            <div class="form-group">
+                                <label>Office Address</label>
+                                <textarea name="office_address" class="form-control"><?php echo htmlspecialchars($office_address ?? ''); ?></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Office Email</label>
+                                <input type="email" name="office_email" value="<?php echo htmlspecialchars($office_email ?? ''); ?>" placeholder="Enter office email">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>Permanent Address</label>
-                            <textarea name="permanent_address" class="form-control"><?php echo htmlspecialchars($lead['permanent_address'] ?: ''); ?></textarea>
+
+                        <h3 class="text-lg font-semibold mt-6 mb-4 text-blue-700">1.1.3. Parent's / Guardian's Contact Details</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="form-group">
+                                <label>Parent's / Guardian's Name</label>
+                                <input type="text" name="parent_guardian_name" value="<?php echo htmlspecialchars($parent_guardian_name ?? ''); ?>" placeholder="Enter name">
+                            </div>
+                            <div class="form-group">
+                                <label>Contact Number</label>
+                                <input type="text" name="parent_contact_number" value="<?php echo htmlspecialchars($parent_contact_number ?? ''); ?>" placeholder="Enter contact number">
+                            </div>
+                            <div class="form-group">
+                                <label>Address</label>
+                                <textarea name="parent_address" class="form-control"><?php echo htmlspecialchars($parent_address ?? ''); ?></textarea>
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <label>Work Experience</label>
-                            <textarea name="work_experience" class="form-control"><?php echo htmlspecialchars($lead['work_experience'] ?: ''); ?></textarea>
+
+                        <h3 class="text-lg font-semibold mt-6 mb-4 text-blue-700">1.1.4. Working Experience</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="form-group">
+                                <label>Company / Institution</label>
+                                <input type="text" name="company_institution" value="<?php echo htmlspecialchars($company_institution ?? ''); ?>" placeholder="Enter company/institution name">
+                            </div>
                         </div>
+
                         <button type="submit" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">Update Details</button>
                     </form>
 
@@ -405,10 +500,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         <div class="form-group">
                             <label>Document Type</label>
                             <select name="document_type" required>
-                                <option value="nic">NIC Copy</option>
-                                <option value="education">Education Documents</option>
-                                <option value="work_experience">Work Experience Documents</option>
-                                <option value="birth_certificate">Birth Certificate</option>
+                                <option value="nic_passport">Copy of NIC/Passport</option>
+                                <option value="academic_docs">Copy of Academic Documents (GCE A/L and O/L)</option>
+                                <option value="diploma_certificate">Diploma/Higher Diploma/Postgraduate/Degree Certificate</option>
+                                <option value="employment_history">Copies of Employment History</option>
+                                <option value="birth_certificate">Copy of Birth Certificate</option>
+                                <option value="passport_photos">2 Passport Size Photos</option>
                             </select>
                         </div>
                         <div class="form-group">
@@ -416,24 +513,6 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             <input type="file" name="document" required>
                         </div>
                         <button type="submit" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">Upload Document</button>
-                    </form>
-
-                    <h2 class="text-xl font-semibold mt-8 mb-4 text-blue-800">Add Follow-up</h2>
-                    <form method="POST" action="/std_mgmt/views/marketing_user/lead_details.php?lead_id=<?php echo htmlspecialchars((string)$lead_id); ?>" class="bg-gray-50 p-6 rounded-lg shadow-sm">
-                        <input type="hidden" name="add_followup" value="1">
-                        <div class="form-group">
-                            <label>Follow-up Number</label>
-                            <input type="number" name="number" min="1" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Follow-up Date</label>
-                            <input type="date" name="followup_date" required>
-                        </div>
-                        <div class="form-group">
-                            <label>Comment</label>
-                            <textarea name="comment" class="form-control" required></textarea>
-                        </div>
-                        <button type="submit" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">Add Follow-up</button>
                     </form>
 
                     <h2 class="text-xl font-semibold mt-8 mb-4 text-blue-800">Registration Payment</h2>
@@ -474,10 +553,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             <tbody>
                                 <?php
                                 $type_labels = [
-                                    'nic' => 'NIC Copy',
-                                    'education' => 'Education Documents',
-                                    'work_experience' => 'Work Experience Documents',
-                                    'birth_certificate' => 'Birth Certificate'
+                                    'nic_passport' => 'Copy of NIC/Passport',
+                                    'academic_docs' => 'Copy of Academic Documents (GCE A/L and O/L)',
+                                    'diploma_certificate' => 'Diploma/Higher Diploma/Postgraduate/Degree Certificate',
+                                    'employment_history' => 'Copies of Employment History',
+                                    'birth_certificate' => 'Copy of Birth Certificate',
+                                    'passport_photos' => '2 Passport Size Photos'
                                 ];
                                 foreach ($documents as $doc): ?>
                                     <tr>
@@ -540,61 +621,8 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                     </div>
                 <?php endif; ?>
 
-                <h2 class="text-xl font-semibold mt-8 mb-4 text-blue-800">Follow-ups</h2>
-                <?php if (empty($followups)): ?>
-                    <div class="p-4 text-gray-600">No follow-ups added.</div>
-                <?php else: ?>
-                    <div class="overflow-x-auto" id="followup-table">
-                        <form method="POST" action="/std_mgmt/views/marketing_user/lead_details.php?lead_id=<?php echo htmlspecialchars((string)$lead_id); ?>">
-                            <table class="table">
-                                <thead>
-                                    <tr>
-                                        <th>Number</th>
-                                        <th>Date</th>
-                                        <th>Comment</th>
-                                        <th>Created At</th>
-                                        <?php if ($user['role'] === 'marketing_user'): ?>
-                                            <th>Action</th>
-                                        <?php endif; ?>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($followups as $index => $followup): ?>
-                                        <tr>
-                                            <td>
-                                                <input type="number" name="number[<?php echo $index; ?>]" value="<?php echo htmlspecialchars($followup['number']); ?>" min="1" required class="w-full">
-                                            </td>
-                                            <td>
-                                                <input type="date" name="followup_date[<?php echo $index; ?>]" value="<?php echo htmlspecialchars($followup['followup_date']); ?>" required class="w-full">
-                                            </td>
-                                            <td>
-                                                <textarea name="comment[<?php echo $index; ?>]" required class="w-full"><?php echo htmlspecialchars($followup['comment']); ?></textarea>
-                                            </td>
-                                            <td><?php echo htmlspecialchars($followup['created_at']); ?></td>
-                                            <?php if ($user['role'] === 'marketing_user'): ?>
-                                                <td class="action-cell">
-                                                    <form method="POST" action="/std_mgmt/views/marketing_user/lead_details.php?lead_id=<?php echo htmlspecialchars((string)$lead_id); ?>" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this follow-up?');">
-                                                        <input type="hidden" name="delete_followup" value="1">
-                                                        <input type="hidden" name="followup_id" value="<?php echo htmlspecialchars((string)$followup['id']); ?>">
-                                                        <button type="submit" class="px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 shadow-md hover:shadow-lg transition-all duration-300">Delete</button>
-                                                    </form>
-                                                </td>
-                                            <?php endif; ?>
-                                        </tr>
-                                        <input type="hidden" name="followup_id[<?php echo $index; ?>]" value="<?php echo htmlspecialchars((string)$followup['id']); ?>">
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
-                            <?php if ($user['role'] === 'marketing_user'): ?>
-                                <input type="hidden" name="update_followups" value="1">
-                                <button type="submit" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300 mt-4">Update Details</button>
-                            <?php endif; ?>
-                        </form>
-                    </div>
-                <?php endif; ?>
-
                 <div class="mt-6">
-                    <a href="/std_mgmt/views/<?php echo $user['role']; ?>/pending_registrations.php?course=<?php echo urlencode($lead['form_name']); ?>" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">Back to Pending Registrations</a>
+                    <a href="/std_mgmt/views/<?php echo $user['role']; ?>/pending_registrations.php?course=<?php echo urlencode($lead['form_name'] ?? ''); ?>" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">Back to Pending Registrations</a>
                 </div>
             </div>
         </div>

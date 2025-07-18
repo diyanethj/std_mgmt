@@ -80,8 +80,8 @@ class LeadController {
         return $this->leadModel->updateStatus($lead_id, 'pending_registration');
     }
 
-    public function updateLeadDetails($lead_id, $permanent_address, $work_experience, $date_of_birth, $nic_number) {
-        return $this->leadModel->updateLeadDetails($lead_id, $permanent_address, $work_experience, $date_of_birth, $nic_number);
+    public function updateLeadDetails($lead_id, $form_name, $title, $full_name, $nic_number, $passport_number, $date_of_birth, $gender, $nationality, $marital_status, $permanent_address, $current_address, $mobile_no, $email_address, $office_address, $office_email, $parent_guardian_name, $parent_contact_number, $parent_address, $company_institution, $postcode) {
+        return $this->leadModel->updateLeadDetails($lead_id, $form_name, $title, $full_name, $nic_number, $passport_number, $date_of_birth, $gender, $nationality, $marital_status, $permanent_address, $current_address, $mobile_no, $email_address, $office_address, $office_email, $parent_guardian_name, $parent_contact_number, $parent_address, $company_institution, $postcode);
     }
 
     public function getTotalLeads()
@@ -129,5 +129,4 @@ class LeadController {
     public function getDeclinedUserLeadsCount($user_id) {
         return $this->leadModel->getDeclinedUserLeadsCount($user_id);
     }
-
 }
