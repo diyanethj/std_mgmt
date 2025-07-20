@@ -9,11 +9,13 @@ require_once __DIR__ . '/../../backend/controllers/LeadController.php';
 require_once __DIR__ . '/../../backend/controllers/DocumentController.php';
 require_once __DIR__ . '/../../backend/controllers/AuthController.php';
 require_once __DIR__ . '/../../backend/controllers/PaymentController.php';
+require_once __DIR__ . '/../../backend/controllers/PaymentPlanController.php';
 
 $leadController = new LeadController($pdo);
 $documentController = new DocumentController($pdo);
 $authController = new AuthController($pdo);
 $paymentController = new PaymentController($pdo);
+$paymentPlanController = new PaymentPlanController($pdo);
 
 $user = $authController->getCurrentUser();
 if (!$user || $user['role'] !== 'marketing_user') {
@@ -215,13 +217,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $user['role'] === 'marketing_user')
         } else {
             $error = 'Failed to delete payment';
         }
+    } elseif (isset($_POST['assign_payment_plan'])) {
+        $plan_id = (int)($_POST['plan_id'] ?? 0);
+        $paid_amounts = [];
+        foreach ($_POST as $key => $value) {
+            if (strpos($key, 'paid_amount_') === 0) {
+                $installment_id = substr($key, 11);
+                $paid_amounts[$installment_id] = floatval($value);
+            }
+        }
+        if ($plan_id > 0 && $paymentController->assignPaymentPlan($lead_id, $plan_id, $paid_amounts)) {
+            header('Location: /std_mgmt/views/marketing_user/lead_details.php?lead_id=' . $lead_id . '&success=Payment plan assigned successfully');
+            exit;
+        } else {
+            $error = 'Failed to assign payment plan';
+        }
     }
 }
 
 $documents = $documentController->getDocumentsByLead($lead_id);
 $payments = $paymentController->getPaymentsByLead($lead_id);
+$payment_plans = $paymentPlanController->getAllPaymentPlans();
 error_log("Documents: " . print_r($documents, true) . " at " . date('Y-m-d H:i:s'));
 error_log("Payments: " . print_r($payments, true) . " at " . date('Y-m-d H:i:s'));
+error_log("Payment Plans: " . print_r($payment_plans, true) . " at " . date('Y-m-d H:i:s'));
 
 define('BASE_PATH', '/std_mgmt');
 $currentPage = basename($_SERVER['PHP_SELF']);
@@ -297,6 +316,18 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         .form-group textarea {
             resize: vertical;
             min-height: 100px;
+        }
+        .installment-table {
+            margin-top: 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+        }
+        .installment-table th, .installment-table td {
+            padding: 8px;
+            text-align: left;
+        }
+        .installment-table th {
+            background-color: #f3f4f6;
         }
     </style>
 </head>
@@ -531,6 +562,51 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                             <input type="file" name="receipt" required>
                         </div>
                         <button type="submit" class="px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">Add Payment</button>
+                    </form>
+
+                    <h2 class="text-xl font-semibold mt-8 mb-4 text-blue-800">Assign Payment Plan</h2>
+                    <form method="POST" action="/std_mgmt/views/marketing_user/lead_details.php?lead_id=<?php echo htmlspecialchars((string)$lead_id); ?>" class="bg-gray-50 p-6 rounded-lg shadow-sm">
+                        <input type="hidden" name="assign_payment_plan" value="1">
+                        <div class="form-group">
+                            <label>Payment Plan</label>
+                            <select name="plan_id" id="plan_id" onchange="this.form.submit()" required>
+                                <option value="">Select a Payment Plan</option>
+                                <?php foreach ($payment_plans as $plan): ?>
+                                    <option value="<?php echo htmlspecialchars($plan['id']); ?>"><?php echo htmlspecialchars($plan['plan_name']) . ' (Total: ' . number_format($plan['total_amount'], 2) . ' LKR)'; ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <?php
+                        if (isset($_POST['plan_id']) && $_POST['plan_id']) {
+                            $selected_plan_id = (int)$_POST['plan_id'];
+                            $selected_plan = $paymentPlanController->getPaymentPlanById($selected_plan_id);
+                            if ($selected_plan && !empty($selected_plan['installments'])): ?>
+                                <div class="installment-table">
+                                    <table>
+                                        <thead>
+                                            <tr>
+                                                <th>Installment Name</th>
+                                                <th>Amount (LKR)</th>
+                                                <th>Paid Amount (LKR)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($selected_plan['installments'] as $installment): ?>
+                                                <tr>
+                                                    <td><?php echo htmlspecialchars($installment['installment_name']); ?></td>
+                                                    <td><?php echo number_format($installment['amount'], 2); ?></td>
+                                                    <td>
+                                                        <input type="number" name="paid_amount_<?php echo $installment['id']; ?>" min="0" max="<?php echo $installment['amount']; ?>" step="0.01" placeholder="Enter paid amount" class="form-group" required>
+                                                    </td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <button type="submit" class="mt-4 px-6 py-3 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg transition-all duration-300">Assign Payment Plan</button>
+                            <?php endif;
+                        }
+                        ?>
                     </form>
                 <?php endif; ?>
 

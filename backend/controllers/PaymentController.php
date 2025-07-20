@@ -78,4 +78,55 @@ class PaymentController {
             return false;
         }
     }
+
+    public function assignPaymentPlan($lead_id, $plan_id, $paid_amounts) {
+        try {
+            $this->pdo->beginTransaction();
+    
+            // Validate plan exists
+            $stmt = $this->pdo->prepare("SELECT * FROM payment_plans WHERE id = ?");
+            $stmt->execute([$plan_id]);
+            if (!$stmt->fetch()) {
+                throw new Exception("Invalid payment plan ID");
+            }
+    
+            // Validate and fetch installments
+            $stmt = $this->pdo->prepare("SELECT id, amount FROM plan_installments WHERE plan_id = ?");
+            $stmt->execute([$plan_id]);
+            $installments = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            if (empty($installments)) {
+                throw new Exception("No installments found for the selected plan");
+            }
+    
+            // Validate paid amounts
+            foreach ($installments as $installment) {
+                $installment_id = $installment['id'];
+                $max_amount = $installment['amount'];
+                if (isset($paid_amounts[$installment_id]) && ($paid_amounts[$installment_id] > $max_amount || $paid_amounts[$installment_id] < 0)) {
+                    throw new Exception("Paid amount for installment $installment_id exceeds $max_amount or is negative");
+                }
+            }
+    
+            // Insert payment plan assignment
+            $stmt = $this->pdo->prepare("INSERT INTO lead_payment_plans (lead_id, plan_id, assigned_at) VALUES (?, ?, NOW())");
+            $stmt->execute([$lead_id, $plan_id]);
+            $assignment_id = $this->pdo->lastInsertId();
+    
+            // Record paid amounts
+            $stmt = $this->pdo->prepare("INSERT INTO payment_records (lead_id, plan_installment_id, amount_paid, created_at) VALUES (?, ?, ?, NOW())");
+            foreach ($paid_amounts as $installment_id => $amount) {
+                if ($amount > 0) {
+                    $stmt->execute([$lead_id, $installment_id, $amount]);
+                }
+            }
+    
+            $this->pdo->commit();
+            error_log("Payment plan $plan_id assigned to lead $lead_id at " . date('Y-m-d H:i:s'));
+            return true;
+        } catch (PDOException | Exception $e) {
+            $this->pdo->rollBack();
+            error_log("Error assigning payment plan $plan_id to lead $lead_id: " . $e->getMessage() . " at " . date('Y-m-d H:i:s'));
+            return false;
+        }
+    }
 }
