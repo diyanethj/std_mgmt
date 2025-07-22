@@ -643,7 +643,7 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 
             <h3 class="text-lg font-semibold mb-4 text-blue-700">Installments</h3>
             <div class="overflow-x-auto">
-                <?php if ($assigned_plan && !empty($installments)): ?>
+                <?php if (!empty($installments)): ?>
                     <form method="POST" action="/std_mgmt/views/marketing_user/lead_details.php?lead_id=<?php echo htmlspecialchars((string)$lead_id); ?>" enctype="multipart/form-data" class="bg-gray-50 p-6 rounded-lg shadow-sm">
                         <table class="table">
                             <thead>

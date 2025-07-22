@@ -152,6 +152,11 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                         </a>
                     </li>
                     <li>
+                        <a href="<?php echo BASE_PATH; ?>/views/admin/add_payment_plan.php" class="block p-2 rounded hover:bg-red-700/30 <?php echo $currentPage === 'add_payment_plan.php' ? 'bg-red-700/50' : ''; ?>">
+                            Add Payment Plan
+                        </a>
+                    </li>
+                    <li>
                         <a href="<?php echo BASE_PATH; ?>/views/auth/logout.php" class="block p-2 rounded hover:bg-red-600">
                             Logout
                         </a>

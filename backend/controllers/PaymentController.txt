@@ -156,7 +156,6 @@ class PaymentController {
         }
     }
 
-    // In PaymentController.php
     public function getAssignedPaymentPlan($lead_id) {
         try {
             $stmt = $this->pdo->prepare("SELECT pp.* FROM lead_payment_plans lpp 
@@ -164,10 +163,11 @@ class PaymentController {
                                         WHERE lpp.lead_id = ? LIMIT 1");
             $stmt->execute([$lead_id]);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            error_log("DEBUG - getAssignedPaymentPlan result: " . print_r($result, true));
+            error_log("Fetched assigned plan for lead $lead_id: " . print_r($result, true) . " at " . date('Y-m-d H:i:s'));
+            error_log("Assigned plan ID for lead $lead_id: " . ($result['plan_id'] ?? 'null') . " at " . date('Y-m-d H:i:s'));
             return $result ?: null;
         } catch (PDOException $e) {
-            error_log("Error in getAssignedPaymentPlan: " . $e->getMessage());
+            error_log("Error fetching assigned payment plan for lead $lead_id: " . $e->getMessage() . " at " . date('Y-m-d H:i:s'));
             return null;
         }
     }
@@ -207,19 +207,17 @@ class PaymentController {
     
     public function getInstallmentsForPlan($lead_id, $plan_id) {
         try {
-            error_log("Fetching installments for lead $lead_id, plan $plan_id");
-            $stmt = $this->pdo->prepare("SELECT i.id, i.installment_name, i.amount, 
-                                        pr.amount_paid, pr.paid_date, pr.receipt_path
-                                        FROM plan_installments i
+            error_log("Attempting to fetch installments for lead $lead_id, plan_id $plan_id at " . date('Y-m-d H:i:s'));
+            $stmt = $this->pdo->prepare("SELECT i.installment_name, i.amount, i.created_at AS due_date, pr.amount_paid AS paid_amount, pr.paid_date, pr.receipt_path, i.id 
+                                        FROM plan_installments i 
                                         LEFT JOIN payment_records pr ON i.id = pr.plan_installment_id AND pr.lead_id = ?
-                                        WHERE i.plan_id = ?
-                                        ORDER BY i.id ASC");
+                                        WHERE i.plan_id = ?");
             $stmt->execute([$lead_id, $plan_id]);
             $installments = $stmt->fetchAll(PDO::FETCH_ASSOC);
-            error_log("Fetched installments: " . print_r($installments, true));
+            error_log("Fetched installments for lead $lead_id, plan $plan_id: " . print_r($installments, true) . " at " . date('Y-m-d H:i:s'));
             return $installments;
         } catch (PDOException $e) {
-            error_log("Error in getInstallmentsForPlan: " . $e->getMessage());
+            error_log("Error fetching installments for lead $lead_id, plan $plan_id: " . $e->getMessage() . " at " . date('Y-m-d H:i:s'));
             return [];
         }
     }
