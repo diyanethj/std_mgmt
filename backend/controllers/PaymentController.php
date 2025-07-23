@@ -10,7 +10,7 @@ class PaymentController {
         }
     }
 
-    public function addPayment($lead_id, $amount, $payment_name, $file) {
+    public function addPayment($lead_id, $payment_name, $amount, $file) {
         try {
             if (!is_numeric($amount) || $amount <= 0) {
                 error_log("Invalid payment amount: $amount for lead_id $lead_id at " . date('Y-m-d H:i:s'));
@@ -30,17 +30,23 @@ class PaymentController {
                 return false;
             }
 
-            $stmt = $this->pdo->prepare("INSERT INTO payments (lead_id, amount, payment_name, receipt_path, created_at) VALUES (?, ?, ?, ?, NOW())");
-            $success = $stmt->execute([$lead_id, $amount, $payment_name, $filePath]);
+            // Store only the filename in the database, adjust if full path is needed
+            $receiptPath = $fileName;
+
+            $stmt = $this->pdo->prepare("INSERT INTO payments (lead_id, payment_name, amount, receipt_path, created_at) VALUES (?, ?, ?, ?, NOW())");
+            $success = $stmt->execute([$lead_id, $payment_name, $amount, $receiptPath]);
 
             if (!$success) {
                 unlink($filePath); // Clean up file if DB insert fails
-                error_log("Database insert failed for payment with lead_id $lead_id at " . date('Y-m-d H:i:s'));
+                error_log("Database insert failed for payment with lead_id $lead_id at " . date('Y-m-d H:i:s') . ": " . print_r($stmt->errorInfo(), true));
+            } else {
+                error_log("Payment added successfully for lead_id $lead_id: amount=$amount, name=$payment_name, receipt=$receiptPath");
             }
 
             return $success;
         } catch (PDOException $e) {
             error_log("PDO Exception in addPayment: " . $e->getMessage() . " for lead_id $lead_id at " . date('Y-m-d H:i:s'));
+            if (file_exists($filePath)) unlink($filePath); // Clean up on exception
             return false;
         }
     }
@@ -66,8 +72,8 @@ class PaymentController {
                 $stmt = $this->pdo->prepare("DELETE FROM payments WHERE id = ? AND lead_id = ?");
                 $success = $stmt->execute([$payment_id, $lead_id]);
 
-                if ($success && file_exists($payment['receipt_path'])) {
-                    unlink($payment['receipt_path']); // Clean up file
+                if ($success && file_exists($this->uploadDir . $payment['receipt_path'])) {
+                    unlink($this->uploadDir . $payment['receipt_path']); // Clean up file
                 }
 
                 return $success;
@@ -82,21 +88,21 @@ class PaymentController {
     public function assignPaymentPlan($lead_id, $plan_id, $paid_amounts, $paid_dates = [], $invoice_files = []) {
         try {
             $this->pdo->beginTransaction();
-    
+
             // Check if a plan is already assigned
             $stmt = $this->pdo->prepare("SELECT plan_id FROM lead_payment_plans WHERE lead_id = ?");
             $stmt->execute([$lead_id]);
             if ($stmt->fetch()) {
                 throw new Exception("A payment plan is already assigned to this lead. Only one plan is allowed per lead.");
             }
-    
+
             // Validate plan exists
             $stmt = $this->pdo->prepare("SELECT * FROM payment_plans WHERE id = ?");
             $stmt->execute([$plan_id]);
             if (!$stmt->fetch()) {
                 throw new Exception("Invalid payment plan ID");
             }
-    
+
             // Validate and fetch installments
             $stmt = $this->pdo->prepare("SELECT id, amount, installment_name FROM plan_installments WHERE plan_id = ?");
             $stmt->execute([$plan_id]);
@@ -104,17 +110,17 @@ class PaymentController {
             if (empty($installments)) {
                 throw new Exception("No installments found for the selected plan");
             }
-    
+
             // Validate paid amounts and process invoices (optional)
             $uploadDir = __DIR__ . '/../../uploads/invoices/';
             if (!is_dir($uploadDir)) {
                 mkdir($uploadDir, 0777, true);
             }
-    
+
             $stmt = $this->pdo->prepare("INSERT INTO lead_payment_plans (lead_id, plan_id, assigned_at) VALUES (?, ?, NOW())");
             $stmt->execute([$lead_id, $plan_id]);
             $assignment_id = $this->pdo->lastInsertId();
-    
+
             $stmt = $this->pdo->prepare("INSERT INTO payment_records (lead_id, plan_installment_id, amount_paid, paid_date, invoice_path, created_at) VALUES (?, ?, ?, ?, ?, NOW())");
             foreach ($installments as $installment) {
                 $installment_id = $installment['id'];
@@ -122,12 +128,12 @@ class PaymentController {
                 $paid_amount_key = "paid_amount_$installment_id";
                 $paid_date_key = "paid_date_$installment_id";
                 $invoice_key = "invoice_$installment_id";
-    
+
                 $paid_amount = isset($paid_amounts[$installment_id]) && floatval($paid_amounts[$installment_id]) > 0 ? floatval($paid_amounts[$installment_id]) : 0;
                 if ($paid_amount > $max_amount || $paid_amount < 0) {
                     throw new Exception("Paid amount for installment $installment_id exceeds $max_amount or is negative");
                 }
-    
+
                 $paid_date = isset($paid_dates[$installment_id]) ? $paid_dates[$installment_id] : date('Y-m-d');
                 $invoice_path = null;
                 if (isset($invoice_files[$installment_id]) && $invoice_files[$installment_id]['error'] === UPLOAD_ERR_OK) {
@@ -139,13 +145,13 @@ class PaymentController {
                         throw new Exception("Failed to upload invoice for installment $installment_id");
                     }
                 }
-    
+
                 // Only insert payment records if a paid amount is provided
                 if ($paid_amount > 0) {
                     $stmt->execute([$lead_id, $installment_id, $paid_amount, $paid_date, $invoice_path]);
                 }
             }
-    
+
             $this->pdo->commit();
             error_log("Payment plan $plan_id assigned to lead $lead_id at " . date('Y-m-d H:i:s'));
             return true;
@@ -156,7 +162,6 @@ class PaymentController {
         }
     }
 
-    // In PaymentController.php
     public function getAssignedPaymentPlan($lead_id) {
         try {
             $stmt = $this->pdo->prepare("SELECT pp.* FROM lead_payment_plans lpp 
@@ -172,8 +177,6 @@ class PaymentController {
         }
     }
 
-    // Existing methods like assignPaymentPlan, getPaymentsByLead, etc. remain unchanged
-    // Ensure getPaymentRecordsByLead is also defined if not already present
     public function getPaymentRecordsByLead($lead_id) {
         try {
             $stmt = $this->pdo->prepare("SELECT * FROM payment_records WHERE lead_id = ?");
@@ -204,7 +207,7 @@ class PaymentController {
             return null;
         }
     }
-    
+
     public function getInstallmentsForPlan($lead_id, $plan_id) {
         try {
             error_log("Fetching installments for lead $lead_id, plan $plan_id");
@@ -223,29 +226,29 @@ class PaymentController {
             return [];
         }
     }
-    
+
     public function updatePaymentRecords($lead_id, $plan_id, $paid_amounts, $paid_dates = [], $receipt_paths = []) {
         try {
             $this->pdo->beginTransaction();
-    
+
             $stmt = $this->pdo->prepare("SELECT id, plan_installment_id FROM payment_records WHERE lead_id = ? AND plan_installment_id IN (SELECT id FROM plan_installments WHERE plan_id = ?)");
             $stmt->execute([$lead_id, $plan_id]);
             $existing_records = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
+
             foreach ($existing_records as $record) {
                 $installment_id = $record['plan_installment_id'];
                 $paid_amount = isset($paid_amounts[$installment_id]) ? floatval($paid_amounts[$installment_id]) : 0;
                 $paid_date = isset($paid_dates[$installment_id]) ? $paid_dates[$installment_id] : date('Y-m-d');
                 $receipt_path = isset($receipt_paths[$installment_id]) ? $receipt_paths[$installment_id] : null;
-    
+
                 if ($paid_amount < 0) {
                     throw new Exception("Paid amount for installment $installment_id cannot be negative");
                 }
-    
+
                 $stmt_update = $this->pdo->prepare("UPDATE payment_records SET amount_paid = ?, paid_date = ?, receipt_path = ? WHERE id = ?");
                 $stmt_update->execute([$paid_amount, $paid_date, $receipt_path, $record['id']]);
             }
-    
+
             $this->pdo->commit();
             error_log("Payment records updated for lead $lead_id, plan $plan_id at " . date('Y-m-d H:i:s'));
             return true;

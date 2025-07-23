@@ -6,6 +6,10 @@ class Lead {
         $this->pdo = $pdo;
     }
 
+    public function getPdo() {
+        return $this->pdo;
+    }
+
     public function createLead($form_name, $full_name, $email, $phone) {
         if (empty($form_name) || empty($full_name) || empty($email) || empty($phone)) {
             return false;

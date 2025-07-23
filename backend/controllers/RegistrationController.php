@@ -5,8 +5,10 @@ require_once __DIR__ . '/../models/Lead.php';
 class RegistrationController {
     private $registrationModel;
     private $leadModel;
+    private $pdo; // Add PDO property
 
     public function __construct($pdo) {
+        $this->pdo = $pdo; // Store PDO instance
         $this->registrationModel = new Registration($pdo);
         $this->leadModel = new Lead($pdo);
     }
@@ -30,7 +32,7 @@ class RegistrationController {
         return $this->registrationModel->getDeclinedLeads($user_id, $course_name);
     }
 
-    public function approveRegistration($lead_id, $role) {
+    public function approveRegistration($lead_id, $role, $username = null, $password = null) {
         if ($role !== 'marketing_manager' && $role !== 'academic_user') {
             error_log("Invalid role for approval: $role");
             return false;
@@ -38,7 +40,11 @@ class RegistrationController {
         $field = $role === 'marketing_manager' ? 'marketing_manager_approval' : 'academic_user_approval';
         $result = $this->registrationModel->updateApproval($lead_id, $field, 'accepted');
         if ($result) {
-            return $this->updateRegistrationStatus($lead_id);
+            $registration = $this->registrationModel->getRegistrationByLeadId($lead_id);
+            if ($registration && $registration['marketing_manager_approval'] === 'accepted' && $registration['academic_user_approval'] === 'accepted') {
+                return $this->updateRegistrationStatus($lead_id);
+            }
+            return true; // Partial approval, no status update yet
         }
         error_log("Failed to update approval for lead_id: $lead_id, role: $role");
         return false;
@@ -95,4 +101,11 @@ class RegistrationController {
     public function getRegistrationByLeadId($lead_id) {
         return $this->registrationModel->getRegistrationByLeadId($lead_id);
     }
+
+    public function createUserForLead($lead_id, $username, $password) {
+        $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+        $stmt = $this->pdo->prepare("INSERT INTO users (lead_id, username, password, role) VALUES (?, ?, ?, 'student') ON DUPLICATE KEY UPDATE password = VALUES(password)");
+        return $stmt->execute([$lead_id, $username, $hashed_password]);
+    }
 }
+?>

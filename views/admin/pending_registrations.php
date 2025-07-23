@@ -2,7 +2,7 @@
 session_start();
 require_once __DIR__ . '/../../backend/config/db_connect.php';
 if (!isset($pdo)) {
-    error_log("PDO not defined in pending_registrations.php");
+    error_log("PDO not defined in pending_registrations.php at " . date('Y-m-d H:i:s'));
     die("Database connection error");
 }
 require_once __DIR__ . '/../../backend/controllers/AuthController.php';
@@ -11,7 +11,7 @@ require_once __DIR__ . '/../../backend/controllers/RegistrationController.php';
 
 $auth = new AuthController($pdo);
 $user = $auth->getCurrentUser();
-if (!$user || $user['role'] !== 'admin') {
+if (!$user || !isset($user['role']) || $user['role'] !== 'admin') { // Updated line
     header('Location: /std_mgmt/views/auth/login.php?error=Unauthorized%20access');
     exit;
 }
@@ -37,11 +37,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'];
     $role = $_POST['role'];
     if ($action === 'approve') {
-        if ($registrationController->approveRegistration($lead_id, $role)) {
-            header('Location: /std_mgmt/views/admin/pending_registrations.php?course=' . urlencode($course) . '&user_id=' . urlencode($user_id) . '&success=Registration%20approved%20successfully');
-            exit;
-        } else {
-            $error = 'Failed to approve registration';
+        if ($role === 'marketing_manager' || $role === 'academic_user') {
+            if ($registrationController->approveRegistration($lead_id, $role)) {
+                header('Location: /std_mgmt/views/admin/pending_registrations.php?course=' . urlencode($course) . '&user_id=' . urlencode($user_id) . '&success=Registration%20approved%20successfully');
+                exit;
+            } else {
+                $error = 'Failed to approve registration';
+            }
         }
     } elseif ($action === 'decline') {
         if ($registrationController->declineRegistration($lead_id, $role)) {
@@ -49,6 +51,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit;
         } else {
             $error = 'Failed to decline registration';
+        }
+    } elseif ($action === 'create_user') {
+        $username = trim($_POST['username'] ?? '');
+        $password = trim($_POST['password'] ?? '');
+        if ($username && $password && $registrationController->createUserForLead($lead_id, $username, $password)) {
+            header('Location: /std_mgmt/views/admin/pending_registrations.php?course=' . urlencode($course) . '&user_id=' . urlencode($user_id) . '&success=User%20created%20successfully');
+            exit;
+        } else {
+            $error = 'Failed to create user account';
         }
     }
 }
@@ -94,11 +105,25 @@ $currentPage = basename($_SERVER['PHP_SELF']);
         }
         .table .action-cell {
             white-space: nowrap;
-            min-width: 300px; /* Increased width to accommodate multiple buttons */
+            min-width: 500px; /* Increased width to accommodate new form */
         }
         .table .action-cell form, .table .action-cell a {
             display: inline-block;
             margin-right: 8px;
+        }
+        .form-group {
+            margin-bottom: 0.5rem;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.875rem;
+            color: #374151;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 0.25rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.375rem;
         }
     </style>
 </head>
@@ -270,6 +295,18 @@ $currentPage = basename($_SERVER['PHP_SELF']);
                                                 <input type="hidden" name="role" value="academic_user">
                                                 <button type="submit" name="action" value="approve" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700" <?php echo $registration['academic_user_approval'] !== 'pending' ? 'disabled' : ''; ?>>Accept (AU)</button>
                                                 <button type="submit" name="action" value="decline" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700" <?php echo $registration['academic_user_approval'] !== 'pending' ? 'disabled' : ''; ?>>Decline (AU)</button>
+                                            </form>
+                                            <form method="POST" action="<?php echo BASE_PATH; ?>/views/admin/pending_registrations.php?course=<?php echo urlencode($course); ?>&user_id=<?php echo urlencode($user_id); ?>" class="inline-block">
+                                                <input type="hidden" name="lead_id" value="<?php echo htmlspecialchars((string)$registration['lead_id']); ?>">
+                                                <div class="form-group">
+                                                    <label>Username</label>
+                                                    <input type="text" name="username" required class="w-full">
+                                                </div>
+                                                <div class="form-group">
+                                                    <label>Password</label>
+                                                    <input type="password" name="password" required class="w-full">
+                                                </div>
+                                                <button type="submit" name="action" value="create_user" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">Create User</button>
                                             </form>
                                             <a href="<?php echo BASE_PATH; ?>/views/admin/lead_details.php?lead_id=<?php echo htmlspecialchars((string)$registration['lead_id']); ?>" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">View Details</a>
                                         </td>

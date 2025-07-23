@@ -20,7 +20,7 @@ class AuthController {
 
     public function getCurrentUser() {
         if (isset($_SESSION['user_id'])) {
-            $stmt = $this->pdo->prepare("SELECT * FROM users WHERE id = ?");
+            $stmt = $this->pdo->prepare("SELECT id, username, role FROM users WHERE id = ?");
             $stmt->execute([$_SESSION['user_id']]);
             return $stmt->fetch(PDO::FETCH_ASSOC);
         }

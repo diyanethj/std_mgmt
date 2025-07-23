@@ -84,33 +84,27 @@ class LeadController {
         return $this->leadModel->updateLeadDetails($lead_id, $form_name, $title, $full_name, $nic_number, $passport_number, $date_of_birth, $gender, $nationality, $marital_status, $permanent_address, $current_address, $mobile_no, $email_address, $office_address, $office_email, $parent_guardian_name, $parent_contact_number, $parent_address, $company_institution, $postcode);
     }
 
-    public function getTotalLeads()
-    {
+    public function getTotalLeads() {
         return $this->leadModel->getTotalLeads();
     }
 
-    public function getNewLeads()
-    {
+    public function getNewLeads() {
         return $this->leadModel->getNewLeads();
     }
 
-    public function getPendingRegistrationsCount() 
-    {
+    public function getPendingRegistrationsCount() {
         return $this->leadModel->getPendingRegistrationsCount();
     }
 
-    public function getAssignedLeadsCount()
-    {
+    public function getAssignedLeadsCount() {
         return $this->leadModel->getAssignedLeadsCount();
     }
 
-    public function getRegisteredLeadsCount()
-    {
+    public function getRegisteredLeadsCount() {
         return $this->leadModel->getRegisteredLeadsCount();
     }
 
-    public function getDeclinedLeadsCount()
-    {
+    public function getDeclinedLeadsCount() {
         return $this->leadModel->getDeclinedLeadsCount();
     }
 
@@ -128,5 +122,11 @@ class LeadController {
 
     public function getDeclinedUserLeadsCount($user_id) {
         return $this->leadModel->getDeclinedUserLeadsCount($user_id);
+    }
+
+    public function getLeadByUserId($user_id) {
+        $stmt = $this->leadModel->getPdo()->prepare("SELECT l.* FROM leads l JOIN users u ON l.id = u.lead_id WHERE u.id = ?");
+        $stmt->execute([$user_id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 }
